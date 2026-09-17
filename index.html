@@ -500,6 +500,8 @@ input[type=date].inp,input[type=number].inp,.inp.m{font-family:var(--mono);font-
 .fintiles .tile .v{margin:12px 0 6px}
 @media(max-width:1300px){.fintiles{grid-template-columns:repeat(3,1fr)!important}}
 @media(max-width:620px){.fintiles{grid-template-columns:repeat(2,1fr)!important}.fintiles .tile .v{font-size:21px!important}}
+.sdot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:7px;background:var(--up)}
+.sdot.a{background:var(--amber);animation:pulse 1.2s infinite}.sdot.r{background:var(--red)}
 /* ── MUSIC ── */
 .mcv{position:relative;overflow:hidden;flex:none;background:var(--panel2);border-radius:var(--wrad-s)}
 .mcv .art{opacity:.55}
@@ -1240,8 +1242,10 @@ function renderStrip(){
     <span class="seg hide-s">QUEUE <b>${v.remaining}</b></span>
     <span class="seg hide-s">VEL <b>${v.required===Infinity?'∞':n1(v.required)}</b>/WK</span>
     <span class="sp" style="flex:1"></span>
+    <span class="seg" id="syncdot"></span>
     <span class="seg hide-s">STREAK <b>${st.n}D</b></span>
     <span class="seg">${fmtD(today())}</span>`;
+  try{ Sync.paint(); }catch(e){}
 }
 function renderNav(){
   const v=Engine.velocity();
@@ -3862,6 +3866,8 @@ VIEWS_settings=()=>{
       <div class="lbl" style="margin-top:16px;line-height:1.8">DECLARED DAYS ARE REMOVED FROM THE VELOCITY WINDOW.<br>${v.maintDays} FUTURE DAY${v.maintDays===1?'':'S'} CURRENTLY EXCLUDED.</div>
     `)}
   </div>
+  <div style="height:16px"></div>
+  ${syncPanel()}
   <div style="height:16px"></div>
   <div class="g gC">
     ${Pnl('DATA',`
@@ -6540,6 +6546,235 @@ UI.importSave=()=>{ const {out,bad}=QImport.parse(val('iq_t'));
   const sub=val('iq_s'), ch=val('iq_c');
   out.forEach(x=>S.customQ.push({id:'u'+uid(),sub,chapter:ch,level:'CORE',t:80,...x,imported:today()}));
   saveNow(); closeModal(); refresh(); toast(`${out.length} IMPORTED${bad.length?' · '+bad.length+' SKIPPED':''}`,'s'); };
+
+/* ═════════════════════════════════════════════════════════════════
+   Part 19 · SYNC — your own Supabase project, your own login.
+   One private row per account (row-level security). Every save is pushed
+   a moment later; other devices pick it up within seconds.
+   Merging is three-way against the last synced copy, item by item
+   (by id, check-ins by date), so edits on two devices both survive.
+   If the very same field was changed on both, the device syncing wins.
+   ═════════════════════════════════════════════════════════════════ */
+const SYNC_SQL=`create table if not exists public.lockin_state (
+  user_id uuid primary key default auth.uid() references auth.users on delete cascade,
+  doc jsonb not null,
+  version bigint not null default 1,
+  updated_at timestamptz not null default now()
+);
+alter table public.lockin_state enable row level security;
+drop policy if exists "own row" on public.lockin_state;
+create policy "own row" on public.lockin_state for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);`;
+
+const Sync={
+  K:KEY+'.sync', KB:KEY+'.syncbase',
+  st:'off', err:'', busy:false, again:false, t:null, poll:null, lastOk:0, applying:false,
+  cfg(){ try{ return JSON.parse(localStorage.getItem(Sync.K))||{}; }catch(e){ return {}; } },
+  setCfg(patch){ const c=Object.assign(Sync.cfg(),patch); Object.keys(c).forEach(k=>c[k]===undefined&&delete c[k]);
+    try{ localStorage.setItem(Sync.K,JSON.stringify(c)); }catch(e){} return c; },
+  base(){ try{ return JSON.parse(localStorage.getItem(Sync.KB)); }catch(e){ return null; } },
+  setBase(doc){ try{ localStorage.setItem(Sync.KB,JSON.stringify(doc)); }catch(e){} },
+  ready(){ const c=Sync.cfg(); return !!(c.url&&c.key&&c.session); },
+
+  /* ── merge ── */
+  eq:(a,b)=>a===b||JSON.stringify(a)===JSON.stringify(b),
+  isObj:x=>!!x&&typeof x==='object'&&!Array.isArray(x),
+  keys(arr,path){ const n={};
+    return arr.map(x=>{ let k;
+      if(Sync.isObj(x)&&x.id!=null) k='#'+x.id;
+      else if(Sync.isObj(x)&&/checkins$/.test(path)&&x.date) k='@'+x.date;
+      else k='='+JSON.stringify(x);
+      n[k]=(n[k]||0)+1; return n[k]>1?k+'~'+n[k]:k; }); },
+  merge(b,l,r,path=''){
+    if(Sync.eq(l,r)) return l;
+    if(b!==undefined&&Sync.eq(l,b)) return r;
+    if(b!==undefined&&Sync.eq(r,b)) return l;
+    if(Sync.isObj(l)&&Sync.isObj(r)){ const B=Sync.isObj(b)?b:{}, out={};
+      new Set([...Object.keys(l),...Object.keys(r)]).forEach(k=>{
+        const inL=k in l, inR=k in r, inB=k in B;
+        if(inL&&inR) out[k]=Sync.merge(B[k],l[k],r[k],path+'.'+k);
+        else if(inL){ if(!(inB&&Sync.eq(l[k],B[k]))) out[k]=l[k]; }        // removed remotely, untouched here → stays removed
+        else { if(!(inB&&Sync.eq(r[k],B[k]))) out[k]=r[k]; } });
+      return out; }
+    if(Array.isArray(l)&&Array.isArray(r)){ const B=Array.isArray(b)?b:[];
+      const kb=Sync.keys(B,path), kl=Sync.keys(l,path), kr=Sync.keys(r,path);
+      const mb=new Map(kb.map((k,i)=>[k,B[i]])), ml=new Map(kl.map((k,i)=>[k,l[i]])), mr=new Map(kr.map((k,i)=>[k,r[i]]));
+      const keep=k=>{ const inL=ml.has(k), inR=mr.has(k), inB=mb.has(k);
+        if(inL&&inR) return true;
+        if(inL) return !(inB&&Sync.eq(ml.get(k),mb.get(k)));
+        return !(inB&&Sync.eq(mr.get(k),mb.get(k))); };
+      // remote order, with local-only items slotted in after their local predecessor
+      const order=kr.filter(keep);
+      kl.forEach((k,i)=>{ if(mr.has(k)||!keep(k)) return; let j=i-1; while(j>=0&&!order.includes(kl[j])) j--;
+        order.splice(j<0?0:order.indexOf(kl[j])+1,0,k); });
+      return order.map(k=>ml.has(k)&&mr.has(k)?Sync.merge(mb.get(k),ml.get(k),mr.get(k),path+'[]'):(ml.has(k)?ml.get(k):mr.get(k))); }
+    return l; },
+  /* caches and per-device bits never leave the device */
+  strip(s){ const o={}; Object.keys(s).forEach(k=>{ if(!/cache/i.test(k)) o[k]=s[k]; }); const d=JSON.parse(JSON.stringify(o));
+    if(d.music){ delete d.music.vol; delete d.music.last; (d.music.lib||[]).forEach(t=>{ delete t.src; delete t.cv; }); }   // where a song's file lives is per device
+    return d; },
+  adopt(doc){ const local=S;
+    Object.keys(local).forEach(k=>{ if(/cache/i.test(k)) doc[k]=local[k]; });
+    if(doc.music&&Array.isArray(doc.music.lib)){ const mine=new Map(((local.music&&local.music.lib)||[]).map(t=>[t.id,t]));
+      doc.music.lib.forEach(t=>{ const m=mine.get(t.id); if(m){ t.src=m.src; t.cv=m.cv; } else { t.src='dir'; t.cv=t.cv&&t.cv!=='idb'?t.cv:''; } });
+      if(local.music){ doc.music.vol=local.music.vol; doc.music.last=local.music.last; } }
+    return doc; },
+  apply(doc){ Sync.applying=true;
+    try{ S=Sync.adopt(doc); saveNow(); load(); } finally{ Sync.applying=false; }
+    Sync.redraw(); },
+  redraw(){ const busy=$('#modal.on')||$('#pal.on')||(document.activeElement&&/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
+    if(busy){ clearTimeout(Sync.rt); Sync.rt=setTimeout(Sync.redraw,1500); return; } refresh(); },
+
+  /* ── transport ── */
+  async auth(path,body){ const c=Sync.cfg();
+    const r=await fetch(c.url+'/auth/v1/'+path,{method:'POST',headers:{apikey:c.key,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error_description||j.msg||j.message||('AUTH '+r.status));
+    return j; },
+  keep(j){ if(!j.access_token) return null;
+    const session={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000,email:j.user&&j.user.email,uid:j.user&&j.user.id};
+    Sync.setCfg({session}); return session; },
+  async token(){ const c=Sync.cfg(); if(!c.session) throw new Error('SIGNED OUT');
+    if(Date.now()<c.session.expires_at-60e3) return c.session.access_token;
+    const j=await Sync.auth('token?grant_type=refresh_token',{refresh_token:c.session.refresh_token}).catch(e=>{ if(/invalid|not found|revoked/i.test(e.message)){ Sync.setCfg({session:undefined}); } throw e; });
+    const s=Sync.keep(j); s.email=s.email||c.session.email; s.uid=s.uid||c.session.uid; Sync.setCfg({session:s}); return s.access_token; },
+  async rest(method,q,body,prefer){ const c=Sync.cfg(), tok=await Sync.token();
+    const r=await fetch(c.url+'/rest/v1/lockin_state'+q,{method,headers:Object.assign({apikey:c.key,Authorization:'Bearer '+tok,'Content-Type':'application/json'},prefer?{Prefer:prefer}:{}),body:body?JSON.stringify(body):undefined});
+    const txt=await r.text(); let j=null; try{ j=txt?JSON.parse(txt):null; }catch(e){}
+    if(!r.ok){ const m=(j&&(j.message||j.hint))||('HTTP '+r.status); const e=new Error(m); e.status=r.status; e.code=j&&j.code; throw e; }
+    return j; },
+
+  /* ── the loop ── */
+  soon(ms=2500){ if(!Sync.ready()||Sync.applying) return; clearTimeout(Sync.t); Sync.t=setTimeout(()=>Sync.run(),ms); },
+  async run(){
+    if(!Sync.ready()||!navigator.onLine){ Sync.paint(navigator.onLine?'off':'offline'); return; }
+    if(Sync.busy){ Sync.again=true; return; }
+    Sync.busy=true; Sync.paint('syncing');
+    try{
+      for(let attempt=0;attempt<4;attempt++){
+        const c=Sync.cfg(), rows=await Sync.rest('GET','?select=version,doc');
+        const row=rows&&rows[0], local=Sync.strip(S);
+        if(!row){ // first device: upload
+          if(c.join!=='done'&&c.join!=='upload'){ Sync.setCfg({join:'upload'}); }
+          try{ await Sync.rest('POST','',{doc:local,version:1},'return=minimal'); }catch(e){ if(e.status===409) continue; throw e; }
+          Sync.setBase(local); Sync.setCfg({version:1,join:'done'}); break; }
+        if(c.join!=='done'){ Sync.busy=false; Sync.paint('choose'); UI.syncJoin(row); return; }
+        const base=Sync.base();
+        if(row.version===c.version){
+          if(base&&Sync.eq(local,base)) break;
+          const ok=await Sync.rest('PATCH','?version=eq.'+row.version,{doc:local,version:row.version+1,updated_at:new Date().toISOString()},'return=representation');
+          if(!ok||!ok.length) continue;
+          Sync.setBase(local); Sync.setCfg({version:row.version+1}); break; }
+        // someone else synced since we last did — merge
+        const merged=Sync.merge(base||row.doc,local,row.doc);
+        if(!Sync.eq(merged,local)) Sync.apply(JSON.parse(JSON.stringify(merged)));
+        const mine=Sync.strip(S);
+        if(Sync.eq(mine,row.doc)){ Sync.setBase(row.doc); Sync.setCfg({version:row.version}); break; }
+        const ok=await Sync.rest('PATCH','?version=eq.'+row.version,{doc:mine,version:row.version+1,updated_at:new Date().toISOString()},'return=representation');
+        if(!ok||!ok.length) continue;
+        Sync.setBase(mine); Sync.setCfg({version:row.version+1}); break;
+      }
+      Sync.lastOk=Date.now(); Sync.err=''; Sync.paint('ok');
+    }catch(e){
+      Sync.err=e.code==='42P01'||/relation .* does not exist|lockin_state/i.test(e.message)?'TABLE MISSING — RUN THE SQL IN SETTINGS':e.message;
+      Sync.paint(Sync.ready()?'error':'off');
+    }finally{
+      Sync.busy=false;
+      if(Sync.again){ Sync.again=false; Sync.soon(400); }
+    } },
+  /* cheap check: has the version moved? */
+  async peek(){ if(!Sync.ready()||Sync.busy||document.hidden||!navigator.onLine||Sync.cfg().join!=='done') return;
+    try{ const r=await Sync.rest('GET','?select=version'); const v=r&&r[0]?r[0].version:0;
+      if(v!==Sync.cfg().version||!Sync.eq(Sync.strip(S),Sync.base())) Sync.run(); else { Sync.lastOk=Date.now(); Sync.paint('ok'); } }catch(e){} },
+  start(){ clearInterval(Sync.poll); if(!Sync.ready()){ Sync.paint('off'); return; }
+    Sync.poll=setInterval(Sync.peek,8000); Sync.run(); },
+
+  paint(st){ if(st) Sync.st=st;
+    const el=$('#syncdot'); if(el){ const map={ok:['SYNCED','s'],syncing:['SYNCING','a'],error:['SYNC ERROR','r'],offline:['OFFLINE','a'],choose:['SYNC · ACTION NEEDED','a']};
+      const m=Sync.ready()?map[Sync.st]:null;
+      el.innerHTML=m?`<span class="sdot ${m[1]}"></span><b>${m[0]}</b>`:''; el.title=Sync.err||''; }
+    const p=$('#syncstat'); if(p) p.innerHTML=Sync.statusLine(); },
+  statusLine(){ if(!Sync.ready()) return 'NOT CONNECTED';
+    if(Sync.st==='error') return `<span class="dnc">ERROR · ${esc(Sync.err)}</span>`;
+    if(Sync.st==='syncing') return 'SYNCING…'; if(Sync.st==='offline') return 'OFFLINE · WILL SYNC WHEN BACK';
+    if(Sync.st==='choose') return 'CHOOSE WHICH DATA TO KEEP';
+    return Sync.lastOk?'SYNCED · '+new Date(Sync.lastOk).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}):'CONNECTED'; },
+
+  /* ── account ── */
+  async signIn(create){ const email=val('sy_e').trim(), password=$('#sy_p').value;
+    if(!email||password.length<6){ toast('EMAIL + PASSWORD (6+ CHARACTERS)','r'); return; }
+    try{ const j=await Sync.auth(create?'signup':'token?grant_type=password',{email,password});
+      $('#sy_p').value='';
+      if(!Sync.keep(j)){ toast('CHECK YOUR EMAIL, CONFIRM, THEN SIGN IN','s'); return; }
+      Sync.setCfg({join:undefined,version:undefined}); localStorage.removeItem(Sync.KB);
+      toast('SIGNED IN','s'); refresh(); Sync.start();
+    }catch(e){ toast(String(e.message).toUpperCase().slice(0,90),'r'); } },
+  signOut(){ Sync.setCfg({session:undefined,join:undefined,version:undefined}); localStorage.removeItem(Sync.KB); clearInterval(Sync.poll); Sync.paint('off'); refresh(); toast('SIGNED OUT · DATA STAYS ON THIS DEVICE'); },
+  link(){ const c=Sync.cfg(); return location.href.split('#')[0]+'#sync='+btoa(JSON.stringify({u:c.url,k:c.key})); },
+  fromHash(){ const m=location.hash.match(/^#sync=([A-Za-z0-9+/=_-]+)/); if(!m) return false;
+    try{ const d=JSON.parse(atob(m[1])); if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(d.u)||!d.k) throw 0;
+      Sync.setCfg({url:d.u,key:d.k}); history.replaceState(null,'',location.pathname+'#/settings'); router(); toast('SYNC PROJECT ADDED — SIGN IN BELOW','s'); return true;
+    }catch(e){ toast('THAT SYNC LINK IS BROKEN','r'); return false; } },
+};
+UI.syncProject=()=>{ const c=Sync.cfg();
+  const url=val('sy_u').trim().replace(/\/+$/,''), key=val('sy_k').trim();
+  if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)){ toast('PROJECT URL LOOKS LIKE https://xxxx.supabase.co','r'); return; }
+  if(key.length<30){ toast('PASTE THE ANON / PUBLISHABLE KEY','r'); return; }
+  if(c.url&&c.url!==url) Sync.setCfg({session:undefined,join:undefined,version:undefined});
+  Sync.setCfg({url,key}); toast('PROJECT SAVED','s'); refresh(); };
+UI.syncJoin=row=>{ const local=Sync.strip(S), n=d=>['queue','checkins','tasks','trades','habits','goals'].reduce((a,k)=>a+((d[k]||[]).length),0);
+  openModal(modalShell('THIS ACCOUNT ALREADY HAS DATA',`
+    <div class="dim" style="font-size:13px;margin-bottom:16px">Pick what this device should start from. After this, changes merge automatically.</div>
+    <div class="g g2" style="gap:10px">
+      <div class="tile"><div class="lbl">IN THE CLOUD</div><div class="v" style="font-size:28px;margin:10px 0 4px">${n(row.doc)}</div><div class="lbl">ITEMS</div></div>
+      <div class="tile"><div class="lbl">ON THIS DEVICE</div><div class="v" style="font-size:28px;margin:10px 0 4px">${n(local)}</div><div class="lbl">ITEMS</div></div></div>
+    <div class="lbl" style="margin-top:14px;line-height:1.8">NEW PHONE OR BROWSER → USE CLOUD DATA.<br>“REPLACE CLOUD” OVERWRITES THE OTHER DEVICES TOO.</div>`,
+    `<button class="btn sm ghost dngr" onclick="UI.syncJoinDo('upload')">REPLACE CLOUD</button><button class="btn sm solid" onclick="UI.syncJoinDo('cloud')">USE CLOUD DATA</button>`)); };
+UI.syncJoinDo=async how=>{ closeModal();
+  try{ const rows=await Sync.rest('GET','?select=version,doc'), row=rows[0];
+    if(how==='cloud'){ Sync.apply(JSON.parse(JSON.stringify(row.doc))); Sync.setBase(row.doc); Sync.setCfg({version:row.version,join:'done'}); toast('LOADED FROM CLOUD','s'); }
+    else { const local=Sync.strip(S); await Sync.rest('PATCH','?version=eq.'+row.version,{doc:local,version:row.version+1,updated_at:new Date().toISOString()},'return=minimal');
+      Sync.setBase(local); Sync.setCfg({version:row.version+1,join:'done'}); toast('CLOUD REPLACED','s'); }
+    Sync.lastOk=Date.now(); Sync.paint('ok'); refresh();
+  }catch(e){ toast(String(e.message).toUpperCase().slice(0,90),'r'); } };
+UI.copy=(txt,msg)=>{ (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast(msg||'COPIED','s')).catch(()=>{
+  openModal(modalShell('COPY',`<textarea class="inp" style="width:100%;height:160px;font:11px var(--mono)" onclick="this.select()">${esc(txt)}</textarea>`,`<button class="btn sm solid" onclick="closeModal()">DONE</button>`)); }); };
+function syncPanel(){ const c=Sync.cfg(), s=c.session;
+  const steps=`<ol class="systeps">
+      <li>Go to <a href="https://supabase.com/dashboard" target="_blank" rel="noopener">supabase.com</a> → sign up free → <b>New project</b> (any name, any region near you).</li>
+      <li>Open <b>SQL Editor</b> → paste the SQL below → <b>Run</b>. <button class="btn xs ghost" onclick="UI.copy(SYNC_SQL,'SQL COPIED')">COPY SQL</button></li>
+      <li><b>Project Settings → API</b> (or the <b>Connect</b> button) → copy the <b>Project URL</b> and the <b>anon / publishable</b> key into the boxes here.</li>
+      <li>Create your login below. If Supabase emails you a confirmation link, tap it, then sign in.</li></ol>`;
+  return Pnl('SYNC',`
+    <div class="row wf" style="gap:10px;margin-bottom:14px"><span class="lbl" id="syncstat">${Sync.statusLine()}</span><span class="sp"></span>
+      ${s?`<button class="btn xs ghost" onclick="Sync.run()">SYNC NOW</button>`:''}</div>
+    ${!c.url||!c.key?`
+      <div class="dim" style="font-size:12.5px;margin-bottom:12px">Keep your laptop and phone in step. Your data goes to <b>your own</b> free Supabase database, locked to your login — not to this app’s repo.</div>
+      ${steps}
+      ${F.grid(F.text('sy_u','PROJECT URL',c.url||'','https://xxxx.supabase.co'),F.text('sy_k','ANON / PUBLISHABLE KEY',c.key||'','eyJ… or sb_publishable_…'))}
+      <div class="row g8" style="margin-top:12px"><button class="btn sm solid" onclick="UI.syncProject()">SAVE PROJECT</button></div>`
+    :!s?`
+      <div class="dim" style="font-size:12.5px;margin-bottom:12px">Project connected. Sign in with the same email + password on every device.</div>
+      ${F.grid(F.text('sy_e','EMAIL','','you@example.com'),`<div><div class="lbl" style="margin-bottom:8px">PASSWORD</div><input id="sy_p" class="inp" type="password" autocomplete="current-password" placeholder="6+ characters"></div>`)}
+      <div class="row wf g8" style="margin-top:12px"><button class="btn sm solid" onclick="Sync.signIn(false)">SIGN IN</button><button class="btn sm ghost" onclick="Sync.signIn(true)">CREATE ACCOUNT</button>
+        <span class="sp"></span><button class="btn xs ghost" onclick="Sync.setCfg({url:undefined,key:undefined});refresh()">CHANGE PROJECT</button></div>`
+    :`
+      <div class="row wf" style="gap:10px"><span style="font-size:13px">Signed in as <b>${esc(s.email||'')}</b></span><span class="sp"></span>
+        <button class="btn xs ghost" onclick="UI.copy(Sync.link(),'SETUP LINK COPIED — OPEN IT ON YOUR PHONE')">COPY PHONE SETUP LINK</button>
+        <button class="btn xs ghost" onclick="Sync.signOut()">SIGN OUT</button></div>
+      <div class="lbl" style="margin-top:14px;line-height:1.8">SYNCS A FEW SECONDS AFTER EACH CHANGE · CHECKS FOR OTHER DEVICES EVERY 8S · WORKS OFFLINE AND CATCHES UP.<br>NOT SYNCED: TRADE SCREENSHOTS, MUSIC FILES (THE SONG LIST IS), PINTEREST CACHE.</div>`}
+    ${Sync.err&&/TABLE MISSING/.test(Sync.err)||!s?`<details style="margin-top:14px"><summary class="lbl" style="cursor:pointer">SQL FOR THE TABLE</summary><pre class="sysql">${esc(SYNC_SQL)}</pre></details>`:''}
+    <style>
+    .systeps{margin:0 0 16px 18px;font-size:12.5px;line-height:1.9;color:var(--fg2)} .systeps a{color:var(--fg);text-decoration:underline}
+    .sysql{margin-top:10px;padding:12px;border:1px solid var(--line);background:var(--panel);font:11px/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;border-radius:var(--wrad-s)}
+    </style>`,{tick:true}); }
+/* hook every save into sync; check again whenever the app comes back to the foreground */
+{ const _save=save; save=function(){ _save(); Sync.soon(); }; }
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) Sync.peek(); });
+window.addEventListener('online',()=>Sync.run());
+window.addEventListener('offline',()=>Sync.paint('offline'));
+window.addEventListener('beforeunload',()=>{ if(Sync.t&&Sync.ready()) Sync.run(); });
+setTimeout(()=>{ Sync.fromHash(); Sync.start(); },0);
 
 /* ── MUSIC — the soundtrack ────────────────────────────────────────
    Songs play straight from a folder when this file is opened from disk, or from

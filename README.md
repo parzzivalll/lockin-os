@@ -27,7 +27,7 @@ python -m http.server 8000
 
 ## Data and privacy
 
-- Everything is stored in your browser's `localStorage`. Nothing is uploaded. Use **Settings → Export JSON** to move data between devices.
+- Everything is stored in your browser's `localStorage`. Nothing leaves it unless you turn on **Settings → Sync**, which uses *your own* free Supabase project, locked to your login with row-level security. Or use **Export / Import JSON**.
 - Wallets are **watch-only**, using public addresses. It never asks for a seed phrase or private key.
 - Question imports stay in your browser. No third-party question content ships in this repo.
 - Tax numbers are estimates, not advice.
