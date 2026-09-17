@@ -1,0 +1,5 @@
+*.bak.html
+__pycache__/
+.DS_Store
+Thumbs.db
+tools/deny.txt
