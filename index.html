@@ -3869,7 +3869,7 @@ VIEWS_settings=()=>{
       <div class="row g8 wf">
         <button class="btn sm ghost" onclick="UI.export()">EXPORT JSON</button>
         <button class="btn sm ghost" onclick="$('#impf').click()">IMPORT</button>
-        <input type="file" id="impf" accept="application/json" style="display:none" onchange="UI.import(this)">
+        <input type="file" id="impf" accept="application/json,.json,text/plain,*/*" style="display:none" onchange="UI.import(this)">
         <button class="btn sm ghost dngr" onclick="UI.reset()">RESET SYSTEM</button>
       </div>
       <div class="g g3" style="margin-top:22px">
@@ -4973,6 +4973,7 @@ function ensureCollege(){
   if(!S.college||!S.college.courses){ S.college=COLLEGE_SEED(); return; }
   const seed=COLLEGE_SEED();
   ['courses','labs','work','bank','files'].forEach(k=>{ if(!Array.isArray(S.college[k]))S.college[k]=seed[k]; });
+   
 }
 
 let CF={lab:'',course:'ALL',type:'ALL',show:'OPEN'};
@@ -6699,12 +6700,14 @@ const Music={
     if(!files.length){ toast('NO AUDIO FILES','r'); return; }
     toast(`ADDING ${files.length} SONG${files.length===1?'':'S'}…`); let added=0, dup=0;
     for(const f of files){ const tg=await Music.tags(f);
-      if(S.music.lib.some(x=>x.t.toLowerCase()===tg.t.toLowerCase()&&(x.a||'').toLowerCase()===tg.a.toLowerCase())){ dup++; continue; }
-      const id='mu'+uid(), tr={id,t:tg.t,a:tg.a,al:tg.al,cv:'',d:await Music.duration(f),f:f.name,src:'idb',added:today()};
+      const same=S.music.lib.find(x=>x.t.toLowerCase()===tg.t.toLowerCase()&&(x.a||'').toLowerCase()===tg.a.toLowerCase());
+      if(same&&(same.src==='idb'||Music.base)){ dup++; continue; }
+      const id=same?same.id:'mu'+uid(), tr=same||{id,t:tg.t,a:tg.a,al:tg.al,cv:'',d:0,f:f.name,added:today()};
+      tr.d=tr.d||await Music.duration(f); tr.src='idb'; tr.cv='';
       try{ await Music.put(id,f);
         if(tg.pic){ const c=await Music.shrink(tg.pic); if(c){ await Music.put(id+':cv',c); Music.urls[id+':cv']=URL.createObjectURL(c); tr.cv='idb'; } }
       }catch(e){ toast('BROWSER STORAGE IS FULL — REMOVE SOME SONGS','r'); break; }
-      S.music.lib.push(tr); added++; }
+      if(!same) S.music.lib.push(tr); added++; }
     saveNow(); Music.order=[]; refresh();
     toast(`${added} ADDED${dup?` · ${dup} ALREADY IN`:''}`,added?'s':'r'); },
   linkFolder(files){ let n=0;
@@ -6736,6 +6739,10 @@ function musicSection(){
     <div class="empty" style="position:relative;padding:70px 20px">NO SONGS YET<br><span>ADD THE SONGS THAT MAKE YOU FEEL LIKE YOU’RE LIVING THE LIFE</span>
     <div style="margin-top:22px"><button class="btn sm solid" onclick="$('#mu_add').click()">+ ADD SONGS</button></div></div></div>`;
   return `${add}
+  ${(()=>{ const miss=Music.base?0:lib.filter(t=>t.src==='dir'&&!Music.folder[t.f]).length;
+    return miss?`<div class="pnl" style="padding:14px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:13px;flex:1;min-width:200px"><b>${miss} song${miss===1?'':'s'}</b> from your library aren’t on this device yet. Tap ADD SONGS and select the MP3s — they match up by name.</span>
+      <button class="btn xs solid" onclick="$('#mu_add').click()">+ ADD SONGS</button></div>`:''; })()}
   <section class="pnl tk hero" id="mhero" style="position:relative;overflow:hidden">${Music.heroInner()}</section>
   <div class="row wf" style="gap:10px;margin:18px 0 12px">
     <input class="inp" placeholder="Search the soundtrack" value="${esc(q)}" oninput="Music.filter(this.value)" style="max-width:260px;flex:1 1 180px">
