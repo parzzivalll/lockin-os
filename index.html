@@ -496,6 +496,10 @@ input[type=date].inp,input[type=number].inp,.inp.m{font-family:var(--mono);font-
   .hide-s{display:none!important}
   .tbl th,.tbl td{padding:9px 8px;font-size:11px}
 }
+.fintiles{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+.fintiles .tile .v{margin:12px 0 6px}
+@media(max-width:1300px){.fintiles{grid-template-columns:repeat(3,1fr)!important}}
+@media(max-width:620px){.fintiles{grid-template-columns:repeat(2,1fr)!important}.fintiles .tile .v{font-size:21px!important}}
 /* ── MUSIC ── */
 .mcv{position:relative;overflow:hidden;flex:none;background:var(--panel2);border-radius:var(--wrad-s)}
 .mcv .art{opacity:.55}
@@ -1532,7 +1536,7 @@ function todayPanel(){
     ${sig('HABITS',due.length===0&&S.habits.length>0,S.habits.length?(S.habits.length-due.length)+'/'+S.habits.length:'NONE')}
     ${sig('TASKS',tasks.length===0,tasks.length?tasks.length+' DUE':'CLEAR')}
     ${(()=>{const dbt=College.debt(),nd=College.nextDue(),dd=nd&&nd.due?dayDiff(today(),nd.due):null;
-      const ag=S.att?Att.aggregate():{pct:null};
+      const ag=S.att?Att.overall():{pct:null};
       return sig('COLLEGE',dbt===0&&(ag.pct==null||ag.pct>=Att.cfg().threshold),(ag.pct!=null?n1(ag.pct)+'% ATT · ':'')+(dbt?dbt+' TO WRITE':'LABS CLEAR')+(dd!==null?' · T−'+dd+'D':''))})()}
     <div class="row" style="margin-top:16px;gap:8px">
       <button class="btn sm solid sp" onclick="UI.checkinModal()">${icon('check')} CHECK IN</button>
@@ -3675,10 +3679,6 @@ VIEWS_capital=()=>{
   subTabs([['','COMMAND'],['terminal','TERMINAL'],['journal','JOURNAL'],['analytics','ANALYTICS'],['risk','RISK'],['wallets','WALLETS'],['money','MONEY'],['tax','TAX 🇮🇳'],['calendar','CALENDAR']],sub,'capital')+
   `<div class="stg">${body()}</div>
   <style>
-  .fintiles{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
-  .fintiles .tile .v{margin:12px 0 6px}
-  @media(max-width:1300px){.fintiles{grid-template-columns:repeat(3,1fr)!important}}
-  @media(max-width:620px){.fintiles{grid-template-columns:repeat(2,1fr)!important}.fintiles .tile .v{font-size:21px!important}}
   .stgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
   .stc{background:var(--panel);padding:14px}
   :root:not([data-theme="phantom"]) .stc{background:var(--bg)}
@@ -5681,8 +5681,7 @@ const Att={
 function ensureAtt(){ S.att=S.att||{}; ['tt','log','base'].forEach(k=>{ if(!S.att[k]||typeof S.att[k]!=='object') S.att[k]={}; });
   if(!Array.isArray(S.att.holidays)) S.att.holidays=[]; if(!Array.isArray(S.att.extra)) S.att.extra=[]; if(!S.att.cfg) S.att.cfg={}; }
 
-function collegeAttendance(){
-  ensureAtt();
+function attDetailed(){
   const cfg=Att.cfg(), t=cfg.threshold/100, agg=Att.aggregate(), rem=Att.remaining();
   const d=CF.attDate||today(), slots=Att.slotsOn(d), day=Att.dayLog(d), hol=Att.isHoliday(d);
   const rows=Att.courses().map(c=>{ const s=Att.stats(c.id), r=rem?(rem[c.id]||0):null;
@@ -5753,6 +5752,190 @@ function collegeAttendance(){
   @media(max-width:560px){.ttgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   </style>`;
 }
+/* Simple mode — what the college portal shows: days held, days present.
+   Opening balance from the portal + one tap per day after that. */
+Att.simple=()=>{ const s=S.att.simple; if(!s) return null;
+  let held=Number(s.held)||0, present=Number(s.present)||0;
+  Object.entries(S.att.days||{}).forEach(([d,v])=>{ if(s.asOf&&d<=s.asOf) return; if(v==='P'){held++;present++;} else if(v==='A') held++; });
+  return {held,present,pct:held?present/held*100:null,unit:s.unit||'DAYS'}; };
+/* the one number set everything reads: portal days if set, else logged periods */
+Att.overall=()=>{ const s=Att.simple(); if(s) return s; const a=Att.aggregate(); return {...a,unit:'PERIODS'}; };
+Att.markToday=(d,v)=>{ S.att.days=S.att.days||{};
+  if(S.att.simple&&S.att.simple.asOf&&d<=S.att.simple.asOf){ toast('ALREADY INCLUDED IN YOUR PORTAL NUMBERS — UPDATE THEM INSTEAD','r'); return; }
+  if(S.att.days[d]===v) delete S.att.days[d]; else S.att.days[d]=v; save(); refresh();
+  if(S.att.days[d]) toast(v==='P'?'MARKED PRESENT':v==='A'?'MARKED ABSENT':'MARKED HOLIDAY','s'); };
+Att.cycleDay=d=>{ if(d>today()) return; const cur=(S.att.days||{})[d], nx={undefined:'P',P:'A',A:'H',H:undefined}[cur];
+  if(S.att.simple&&S.att.simple.asOf&&d<=S.att.simple.asOf){ toast('BEFORE YOUR LAST PORTAL UPDATE — ALREADY COUNTED','r'); return; }
+  S.att.days=S.att.days||{}; if(nx) S.att.days[d]=nx; else delete S.att.days[d]; save(); refresh(); };
+
+UI.attPortal=()=>{ const s=S.att.simple||{}, o=Att.simple();
+  openModal(modalShell('UPDATE FROM COLLEGE PORTAL',F.stack(
+    `<div class="dim" style="font-size:12.5px">Copy the totals your portal shows (counted up to yesterday). From today on, tap PRESENT or ABSENT each day and the numbers stay current.</div>`,
+    F.pick('ap_u','COUNTED IN',[['DAYS','DAYS'],['PERIODS','CLASSES / PERIODS']],s.unit||'DAYS'),
+    F.grid(F.num('ap_h','TOTAL HELD',o?o.held:'','1'),F.num('ap_p','ATTENDED',o?o.present:'','1')),
+    `<div class="lbl" style="line-height:1.8">ONLY KNOW THE PERCENTAGE? ENTER TOTAL HELD + YOUR % AND WE’LL WORK OUT ATTENDED.</div>`,
+    F.grid(F.num('ap_pct','OR YOUR % (OPTIONAL)','','0.01'),`<div></div>`)),
+  `<button class="btn sm ghost" onclick="closeModal()">CANCEL</button><button class="btn sm solid" onclick="UI.attPortalSave()">SAVE</button>`)); };
+UI.attPortalSave=()=>{ const h=Math.round(numv('ap_h')), pc=numv('ap_pct'); let p=Math.round(numv('ap_p'));
+  if(!(h>0)){ toast('ENTER TOTAL HELD','r'); return; }
+  if(pc>0&&!(p>0)) p=Math.round(h*pc/100);
+  if(!(p>=0)||p>h){ toast('ATTENDED MUST BE BETWEEN 0 AND HELD','r'); return; }
+  S.att.simple={held:h,present:p,unit:val('ap_u')||'DAYS',asOf:addDays(today(),-1)}; // portals usually count up to yesterday
+  if(S.att.days) Object.keys(S.att.days).forEach(d=>{ if(d<=S.att.simple.asOf) delete S.att.days[d]; });
+  saveNow(); closeModal(); refresh(); toast(`${n1(p/h*100)}% · ${p}/${h}`,'s'); };
+
+function attRing(pct,t){ const r=64, C=2*Math.PI*r, v=pct==null?0:clamp(pct,0,100)/100, a=t*2*Math.PI-Math.PI/2;
+  const tone=pct==null?'var(--fg4)':pct>=t*100?'var(--up)':'var(--red)';
+  return `<svg viewBox="0 0 160 160" class="aring">
+    <circle cx="80" cy="80" r="${r}" fill="none" stroke="var(--line2)" stroke-width="10"/>
+    <circle cx="80" cy="80" r="${r}" fill="none" stroke="${tone}" stroke-width="10" stroke-linecap="round"
+      stroke-dasharray="${C*v} ${C}" transform="rotate(-90 80 80)" style="transition:stroke-dasharray 1s var(--e-soft)"/>
+    <line x1="${80+(r-11)*Math.cos(a)}" y1="${80+(r-11)*Math.sin(a)}" x2="${80+(r+11)*Math.cos(a)}" y2="${80+(r+11)*Math.sin(a)}" stroke="var(--fg)" stroke-width="2"/>
+    <text x="80" y="82" text-anchor="middle" class="aring-v" fill="var(--fg)">${pct==null?'—':n1(pct)}<tspan class="aring-u" dx="2">%</tspan></text>
+    <text x="80" y="104" text-anchor="middle" class="aring-l" fill="var(--fg3)">LINE ${Math.round(t*100)}%</text>
+  </svg>`; }
+
+function attOverview(){
+  const cfg=Att.cfg(), t=cfg.threshold/100, o=Att.overall(), simple=!!S.att.simple;
+  const u=(o.unit==='DAYS'?'DAY':'CLASS'), U=n=>n===1?u:(u==='DAY'?'DAYS':'CLASSES');
+  if(!o.held) return `
+    <section class="pnl tk hero" style="position:relative;overflow:hidden">${Art.block('att-empty','contour','art-hero')}
+      <div style="position:relative;padding:clamp(24px,4vw,48px);max-width:560px">
+        <div class="lbl">ATTENDANCE · SET UP IN 10 SECONDS</div>
+        <div class="atthead" style="margin:14px 0 12px">How many days can you take off?</div>
+        <div class="dim" style="font-size:13px;margin-bottom:22px">Open your college portal and copy two numbers: total days (or classes) held, and how many you attended.</div>
+        <button class="btn sm solid" onclick="UI.attPortal()">ENTER PORTAL NUMBERS</button>
+        <button class="btn sm ghost" style="margin-left:8px" onclick="CF.attTab='detail';refresh()">TRACK BY SUBJECT INSTEAD</button>
+      </div></section>`;
+  const miss=Att.canMissNow(o.present,o.held,t), need=Att.needToAttend(o.present,o.held,t), absent=o.held-o.present;
+  const safe=o.pct>=cfg.threshold, band=!safe&&o.pct>=cfg.condonation;
+  const head=safe?(miss?`You can take <b class="upc">${miss} ${U(miss)}</b> off`:`You’re right on the line`)
+    :`Attend the next <b class="dnc">${need} ${U(need)}</b> in a row`;
+  const sub=safe?(miss?`and still stay at or above ${cfg.threshold}%. Skip ${miss+1} and you drop to ${n1(o.present/(o.held+miss+1)*100)}%.`
+      :`Missing even one more ${u.toLowerCase()} drops you to ${n1(o.present/(o.held+1)*100)}%. Attend the next few to build a buffer.`)
+    :`to climb back to ${cfg.threshold}%.${band?` You’re in the condonation band (${cfg.condonation}–${cfg.threshold}%).`:''}`;
+  // waffle — one square per day, grouped: attended · missed · still skippable
+  const total=o.held+(safe?miss:0), scale=Math.max(1,Math.ceil(total/260));
+  const cells=[...Array(Math.ceil(o.present/scale)).fill('p'),...Array(Math.ceil(absent/scale)).fill('a'),...Array(Math.ceil((safe?miss:0)/scale)).fill('s')];
+  // what-if
+  const k=CF.attWhat??Math.max(1,miss||need||1), mode=CF.attWhatMode||'skip';
+  const wp=mode==='skip'?o.present/(o.held+k)*100:(o.present+k)/(o.held+k)*100;
+  // today + calendar
+  const d0=today(), todaySt=(S.att.days||{})[d0], locked=simple&&S.att.simple.asOf&&d0<=S.att.simple.asOf;
+  const mo=CF.attMonth||d0.slice(0,7), first=dt(mo+'-01'), days=new Date(first.getFullYear(),first.getMonth()+1,0).getDate(), lead=(first.getDay()+6)%7;
+  const prevM=iso(new Date(first.getFullYear(),first.getMonth()-1,1)).slice(0,7), nextM=iso(new Date(first.getFullYear(),first.getMonth()+1,1)).slice(0,7);
+  const mCount={P:0,A:0,H:0}; for(let i=1;i<=days;i++){ const v=(S.att.days||{})[mo+'-'+String(i).padStart(2,'0')]; if(v) mCount[v]++; }
+  return `
+  <section class="pnl tk hero atthero" style="position:relative;overflow:hidden">${Art.block('att-hero','contour','art-hero')}
+    <div class="atth">
+      ${attRing(o.pct,t)}
+      <div style="min-width:0;flex:1">
+        <div class="lbl">${safe?'<span class="dot" style="display:inline-block;margin-right:8px;vertical-align:1px"></span>SAFE':band?'CONDONATION BAND':'BELOW THE LINE'} · ${o.present} OF ${o.held} ${o.unit}${simple?` · PORTAL TILL ${fmtD(S.att.simple.asOf)}`:''}</div>
+        <div class="atthead">${head}</div>
+        <div class="dim" style="font-size:13.5px;max-width:520px">${sub}</div>
+        <div class="row wf g8" style="margin-top:20px">
+          <button class="btn xs solid" onclick="UI.attPortal()">UPDATE FROM PORTAL</button>
+          <button class="btn xs ghost" onclick="UI.attSettings()">MINIMUM ${cfg.threshold}%</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="attnums">
+    <div class="attn"><i style="background:var(--fg)"></i><div class="lbl">ATTENDED</div><div class="v">${o.present}</div><div class="lbl">${o.unit}</div></div>
+    <div class="attn"><i style="background:var(--red)"></i><div class="lbl">MISSED</div><div class="v">${absent}</div><div class="lbl">${o.unit}</div></div>
+    <div class="attn"><i class="dash"></i><div class="lbl">${safe?'CAN STILL TAKE OFF':'NEED IN A ROW'}</div><div class="v ${safe?'upc':'dnc'}">${safe?miss:need}</div><div class="lbl">${o.unit}</div></div>
+  </div>
+
+  <div class="g gA" style="margin-top:16px">
+    ${Pnl('EVERY '+u,`
+      <div class="attbar"><span style="width:${o.present/total*100}%;background:var(--fg)"></span><span style="width:${absent/total*100}%;background:var(--red)"></span>${safe&&miss?`<span class="skip" style="width:${miss/total*100}%"></span>`:''}
+        <em style="left:${t*100}%" title="${cfg.threshold}% line"></em></div>
+      <div class="row" style="justify-content:space-between;margin:8px 0 18px"><span class="lbl">0</span><span class="lbl">${cfg.threshold}% LINE</span><span class="lbl">100%</span></div>
+      <div class="waffle">${cells.map(c=>`<i class="${c}"></i>`).join('')}</div>
+      <div class="row wf" style="gap:16px;margin-top:14px">
+        <span class="lbl"><i class="lg p"></i>ATTENDED</span><span class="lbl"><i class="lg a"></i>MISSED</span>${safe&&miss?`<span class="lbl"><i class="lg s"></i>FREE TO TAKE OFF</span>`:''}
+        <span class="sp"></span><span class="lbl">${scale>1?`1 SQUARE = ${scale} ${o.unit}`:`1 SQUARE = 1 ${u}`}</span></div>`,{tick:true})}
+    ${Pnl('WHAT IF',`
+      <div class="seg-c" style="margin-bottom:18px"><button class="${mode==='skip'?'on':''}" onclick="CF.attWhatMode='skip';refresh()">I TAKE OFF</button><button class="${mode==='go'?'on':''}" onclick="CF.attWhatMode='go';refresh()">I ATTEND</button></div>
+      <div class="row" style="align-items:baseline;gap:10px"><span class="atthead" style="margin:0;font-size:44px" id="aw_k">${k}</span><span class="lbl">MORE ${o.unit}</span></div>
+      <input type="range" class="attrange" min="1" max="${Math.max(30,miss+10,need+10)}" value="${k}" oninput="UI.attWhat(this.value)">
+      <div class="lbl" style="margin-top:16px">YOU’D BE AT</div>
+      <div class="row" style="align-items:baseline;gap:12px;margin-top:6px">
+        <span class="atthead ${wp>=cfg.threshold?'upc':'dnc'}" style="margin:0;font-size:44px" id="aw_p">${n1(wp)}%</span>
+        <span class="chip" id="aw_c">${wp>=cfg.threshold?'SAFE':wp>=cfg.condonation?'CONDONATION':'SHORTAGE'}</span></div>`,{tick:true})}
+  </div>
+
+  <div class="g gA" style="margin-top:16px">
+    ${Pnl('TODAY · '+['SUN','MON','TUE','WED','THU','FRI','SAT'][dt(d0).getDay()],`
+      <div class="dim" style="font-size:13px;margin-bottom:16px">${locked?'Today is already inside your portal numbers.':todaySt?`Marked <b>${{P:'present',A:'absent',H:'holiday'}[todaySt]}</b>. Tap again to undo.`:'Did you go to college today? One tap keeps the count current.'}</div>
+      <div class="atttoday">
+        ${[['P','PRESENT','var(--up)'],['A','ABSENT','var(--red)'],['H','HOLIDAY','var(--fg3)']].map(([v,l,c])=>`<button class="${todaySt===v?'on':''}" ${locked?'disabled':''} style="--c:${c}" onclick="Att.markToday('${d0}','${v}')"><b>${l}</b></button>`).join('')}
+      </div>`,{tick:true})}
+    ${Pnl('MONTH',`
+      <div class="row" style="margin-bottom:12px;gap:8px"><button class="btn xs ghost" onclick="CF.attMonth='${prevM}';refresh()">‹</button>
+        <span class="lbl-b sp" style="text-align:center">${first.toLocaleString('en',{month:'long'}).toUpperCase()} ${first.getFullYear()}</span>
+        <button class="btn xs ghost" ${mo>=d0.slice(0,7)?'disabled':''} onclick="CF.attMonth='${nextM}';refresh()">›</button></div>
+      <div class="attcal">${['M','T','W','T','F','S','S'].map(x=>`<span class="lbl">${x}</span>`).join('')}
+        ${Array(lead).fill('<span></span>').join('')}
+        ${Array.from({length:days},(_,i)=>{ const ds=mo+'-'+String(i+1).padStart(2,'0'), v=(S.att.days||{})[ds];
+          return `<button class="${v||''}${ds===d0?' td':''}" ${ds>d0?'disabled':''} onclick="Att.cycleDay('${ds}')">${i+1}</button>`; }).join('')}</div>
+      <div class="row wf" style="gap:14px;margin-top:12px"><span class="lbl"><i class="lg p"></i>${mCount.P} PRESENT</span><span class="lbl"><i class="lg a"></i>${mCount.A} ABSENT</span><span class="lbl"><i class="lg h"></i>${mCount.H} HOLIDAY</span>
+        <span class="sp"></span><span class="lbl hide-s">TAP A DAY TO CYCLE</span></div>`,{tick:true})}
+  </div>`;
+}
+UI.attWhat=v=>{ const cfg=Att.cfg(), o=Att.overall(), k=+v, mode=CF.attWhatMode||'skip'; CF.attWhat=k;
+  const wp=mode==='skip'?o.present/(o.held+k)*100:(o.present+k)/(o.held+k)*100;
+  $('#aw_k').textContent=k; const p=$('#aw_p'); p.textContent=n1(wp)+'%'; p.classList.toggle('upc',wp>=cfg.threshold); p.classList.toggle('dnc',wp<cfg.threshold);
+  $('#aw_c').textContent=wp>=cfg.threshold?'SAFE':wp>=cfg.condonation?'CONDONATION':'SHORTAGE'; };
+
+function collegeAttendance(){
+  ensureAtt();
+  const tab=CF.attTab==='detail'?'detail':'overview';
+  return `<div class="row wf" style="gap:12px;margin-bottom:16px">
+    <div class="seg-c"><button class="${tab==='overview'?'on':''}" onclick="CF.attTab='overview';refresh()">OVERVIEW</button><button class="${tab==='detail'?'on':''}" onclick="CF.attTab='detail';refresh()">BY SUBJECT</button></div>
+    <span class="lbl hide-s">${tab==='overview'?(S.att.simple?'FROM YOUR PORTAL TOTALS + DAYS YOU TAP':'FROM YOUR SUBJECT LOG'):'PER PERIOD · TIMETABLE · CONDONATION'}</span></div>
+  ${tab==='overview'?attOverview():attDetailed()}
+  <style>
+  .atth{position:relative;display:flex;align-items:center;gap:clamp(20px,4vw,48px);padding:clamp(20px,3.4vw,40px)}
+  .aring{width:clamp(150px,20vw,200px);flex:none}
+  .aring-v{font:200 34px var(--disp)} .aring-u{font-size:16px} .aring-l{font:500 7.5px var(--mono);letter-spacing:.2em}
+  .atthead{font:200 clamp(28px,4vw,46px)/1.05 var(--disp);text-transform:uppercase;margin:12px 0 10px;letter-spacing:-.005em}
+  .atthead b{font-weight:300}
+  .attnums{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+  .attn{border:1px solid var(--line);background:var(--panel);padding:18px;border-radius:var(--wrad-s);position:relative}
+  .attn>i{position:absolute;top:20px;right:18px;width:10px;height:10px;border-radius:3px}
+  .attn>i.dash,.waffle i.s,.lg.s{background:transparent!important;border:1.5px dashed var(--up)}
+  .attn .v{font:200 44px/1 var(--disp);margin:12px 0 6px}
+  .attbar{position:relative;display:flex;height:14px;border-radius:7px;background:var(--line);overflow:visible}
+  .attbar span{height:100%}
+  .attbar span:first-child{border-radius:7px 0 0 7px}
+  .attbar .skip{background:repeating-linear-gradient(135deg,var(--up) 0 3px,transparent 3px 7px);opacity:.8}
+  .attbar em{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--fg);margin-left:-1px}
+  .waffle{display:grid;grid-template-columns:repeat(auto-fill,minmax(12px,1fr));gap:3px}
+  .waffle i{aspect-ratio:1;border-radius:3px}
+  .waffle i.p,.lg.p{background:var(--fg);opacity:.85}
+  .waffle i.a,.lg.a{background:var(--red)}
+  .lg{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:-1px}
+  .lg.h{background:var(--line2)}
+  .attrange{width:100%;margin-top:14px;accent-color:var(--fg)}
+  .atttoday{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .atttoday button{padding:22px 8px;border:1px solid var(--line2);background:var(--panel);color:var(--fg2);border-radius:var(--wrad-s);cursor:pointer;font:500 10px/1 var(--mono);letter-spacing:.18em;transition:all .25s var(--e-out)}
+  .atttoday button:hover:not(:disabled){border-color:var(--c);color:var(--fg)}
+  .atttoday button.on{background:var(--c);border-color:var(--c);color:var(--bg)}
+  .atttoday button:disabled{opacity:.4;cursor:default}
+  .attcal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center}
+  .attcal>.lbl{padding:4px 0}
+  .attcal button{aspect-ratio:1;border:1px solid var(--line);background:transparent;color:var(--fg2);border-radius:8px;cursor:pointer;font:500 11px var(--mono);max-height:46px}
+  .attcal button:disabled{opacity:.28;cursor:default}
+  .attcal button.P{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  .attcal button.A{background:var(--red);color:var(--bg);border-color:var(--red)}
+  .attcal button.H{background:var(--line2);color:var(--fg3)}
+  .attcal button.td{box-shadow:inset 0 0 0 2px var(--sig)}
+  @media(max-width:620px){.atth{flex-direction:column;text-align:center}.atth .row{justify-content:center}.attnums{grid-template-columns:1fr 1fr 1fr;gap:8px}.attn{padding:12px}.attn .v{font-size:30px}.attn>i{top:12px;right:10px}}
+  </style>`;
+}
+
 UI.ttAdd=k=>{ const opts=Att.courses().map(c=>[c.id,c.short+' · '+c.name]);
   openModal(modalShell('ADD SLOT · '+k,F.stack(F.sel('tt_c','SUBJECT',opts,opts[0]&&opts[0][0]),
     F.grid(F.text('tt_t','TIME (OPTIONAL)','','9:10–10:10'),F.num('tt_p','PERIODS',1,'1'))),
