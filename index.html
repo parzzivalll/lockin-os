@@ -496,6 +496,76 @@ input[type=date].inp,input[type=number].inp,.inp.m{font-family:var(--mono);font-
   .hide-s{display:none!important}
   .tbl th,.tbl td{padding:9px 8px;font-size:11px}
 }
+/* ── MUSIC ── */
+.mcv{position:relative;overflow:hidden;flex:none;background:var(--panel2);border-radius:var(--wrad-s)}
+.mcv .art{opacity:.55}
+.mcv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.mcv.lg{width:clamp(180px,24vw,260px);aspect-ratio:1;border-radius:calc(var(--wrad-s) + 4px);box-shadow:var(--sh3);transition:transform .8s var(--e-soft),box-shadow .8s var(--e-soft)}
+.mcv.lg.live{transform:scale(1.025);box-shadow:0 40px 110px -30px var(--sig3),var(--sh3)}
+.mcv.sm{width:40px;height:40px;border-radius:9px}
+.mcv.xs{width:38px;height:38px;border-radius:8px}
+.mh{display:flex;gap:clamp(20px,3vw,40px);align-items:center;padding:clamp(20px,3vw,34px);position:relative}
+.mh-i{flex:1;min-width:0}
+.mh-t{font:200 clamp(30px,4.4vw,54px)/1.02 var(--disp);text-transform:uppercase;letter-spacing:-.005em;margin:14px 0 10px;overflow-wrap:anywhere}
+.mh-a{font:500 11px/1.5 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--fg2)}
+.mh-a span{color:var(--fg4)}
+.mh-bar,.mp-bar{position:relative;cursor:pointer;touch-action:none}
+.mh-bar{height:18px;margin:22px 0 4px}
+.mh-bar::before{content:'';position:absolute;left:0;right:0;top:8px;height:2px;background:var(--line2);border-radius:2px}
+.mh-bar i{position:absolute;left:0;top:8px;height:2px;background:var(--fg);border-radius:2px;width:0}
+.mh-bar i::after{content:'';position:absolute;right:-6px;top:-5px;width:12px;height:12px;border-radius:50%;background:var(--fg);transform:scale(0);transition:transform .2s var(--e-out)}
+.mh-bar:hover i::after{transform:scale(1)}
+.mh-c{display:flex;align-items:center;gap:6px;margin-top:14px}
+.mc{position:relative;width:40px;height:40px;display:grid;place-items:center;border-radius:50%;color:var(--fg2);background:transparent;border:0;cursor:pointer;transition:color .2s,background .2s,transform .2s var(--e-out)}
+.mc svg{width:18px;height:18px}
+.mc:hover{color:var(--fg);background:var(--panel2)}
+.mc:active{transform:scale(.92)}
+.mc.lit{color:var(--sig)}
+.mc em{position:absolute;top:6px;right:5px;font:700 8px/1 var(--mono);font-style:normal}
+.mc.big{width:58px;height:58px;background:var(--fg);color:var(--bg);margin:0 6px}
+.mc.big:hover{background:var(--fg);color:var(--bg);transform:scale(1.05)}
+.mc.big svg{width:22px;height:22px}
+.mvol{margin-left:auto;width:110px;accent-color:var(--fg)}
+.mlist{padding:6px;overflow:hidden}
+.mrow{display:flex;align-items:center;gap:14px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background .2s}
+.mrow:hover{background:var(--panel2)}
+.mrow.on{background:var(--sig2)}
+.mrow.bad{opacity:.45}
+.mrow-n{width:22px;flex:none;font:500 10px/1 var(--mono);color:var(--fg4);text-align:center;position:relative}
+.mrow .eq{display:none;height:12px;align-items:flex-end;justify-content:center;gap:2px}
+.mrow.on .mrow-n b{display:none}
+.mrow.on .eq{display:flex}
+.eq s{width:3px;height:100%;background:var(--sig);transform-origin:bottom;transform:scaleY(.35)}
+.mrow.run .eq s{animation:eq 1s var(--e-soft) infinite alternate}
+.mrow.run .eq s:nth-child(2){animation-delay:-.4s;animation-duration:.8s}
+.mrow.run .eq s:nth-child(3){animation-delay:-.7s;animation-duration:1.15s}
+@keyframes eq{to{transform:scaleY(1)}}
+.mrow-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.mrow-t b,.mp-t b{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow.on .mrow-t b{color:var(--sig)}
+.mrow-t span,.mp-t span{font:500 9px/1.3 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow-p,.mrow-d{font:500 10px/1 var(--mono);color:var(--fg3);flex:none}
+.mrow-p{width:34px;text-align:right;color:var(--fg4)}
+.mrow-d{width:38px;text-align:right}
+.mrow-x{width:26px;height:26px;display:grid;place-items:center;border:0;background:none;color:var(--fg4);cursor:pointer;opacity:0;border-radius:50%;flex:none}
+.mrow:hover .mrow-x{opacity:1}
+.mrow-x:hover{color:var(--red);background:var(--red2)}
+@media(hover:none){.mrow-x{opacity:.6}}
+#mplayer{position:fixed;right:18px;bottom:18px;z-index:70;width:360px;max-width:calc(100vw - 20px);pointer-events:none;opacity:0;transform:translateY(16px);transition:opacity .4s var(--e-out),transform .5s var(--e-soft)}
+#mplayer.on{opacity:1;transform:none;pointer-events:auto}
+.mp{position:relative;display:flex;align-items:center;gap:10px;padding:9px 10px 11px;border:1px solid var(--line2);border-radius:16px;overflow:hidden;
+  background:color-mix(in srgb,var(--bg) 72%,transparent);backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);box-shadow:var(--sh3)}
+.mp-art{border:0;background:none;padding:0;cursor:pointer}
+.mp-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;cursor:pointer}
+.mp-b{width:36px;height:36px;display:grid;place-items:center;border:0;background:none;color:var(--fg2);cursor:pointer;border-radius:50%;flex:none}
+.mp-b svg{width:16px;height:16px}
+.mp-b:hover{color:var(--fg);background:var(--panel2)}
+.mp-b.pp{background:var(--fg);color:var(--bg)}
+.mp-bar{position:absolute;left:0;right:0;bottom:0;height:8px}
+.mp-bar::before{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--line)}
+.mp-bar i{position:absolute;left:0;bottom:0;height:2px;background:var(--sig);width:0}
+@media(max-width:980px){#mplayer{left:10px;right:10px;width:auto;max-width:none;bottom:calc(10px + env(safe-area-inset-bottom))}}
+@media(max-width:620px){.mh{flex-direction:column;align-items:stretch;text-align:left}.mcv.lg{width:100%;max-width:340px;margin:0 auto}.mh-c{justify-content:center}.mrow{gap:10px;padding:8px 6px}}
 </style>
 </head>
 <body>
@@ -517,6 +587,7 @@ input[type=date].inp,input[type=number].inp,.inp.m{font-family:var(--mono);font-
 </div>
 <div id="modal" onclick="if(event.target===this)closeModal()"><div class="mbox" id="mbox"></div></div>
 <div id="pal"><div class="palbox"><input id="palq" placeholder="Type a command or jump to a module…" autocomplete="off"><div class="palres" id="palres"></div></div></div>
+<div id="mplayer"></div>
 <div id="toast"></div>
 <script>
 /* ═════════════════════════════════════════════════════════════════
@@ -790,7 +861,7 @@ function defaults(){
     habits:[], habitLog:{},   // habitLog[habitId] = {date:value}
     goals:[], board:[], pinboard:'', boards:[], boardCache:{}, college:null,
     wallets:[], walletCache:{}, ledger:[], fevents:[],
-    att:null, reviews:{}, qstats:{}, customQ:[], mockRuns:[], examRun:null, mockTarget:350, insta:{posts:[],collections:[]},
+    att:null, reviews:{}, qstats:{}, customQ:[], mockRuns:[], examRun:null, mockTarget:350, music:{lib:[],plays:{},shuffle:false,repeat:'all',vol:.9,last:null},
     drill:{attempts:[],bookmarks:[]},
     tasks:[], projects:[], trades:[], positions:[],
     fin:{capital:0,riskPct:1,dailyLoss:3,notes:'',usdInr:95,cashInr:0,slabPct:30,advTax:{},riskCfg:{}},
@@ -816,7 +887,7 @@ function load(){
    
   migrateQueue();
   ensureCollege(); ensureAtt();
-  if(!S.insta) S.insta={posts:[],collections:[]};
+  delete S.insta; S.music=Object.assign({lib:[],plays:{},shuffle:false,repeat:'all',vol:.9,last:null},S.music||{});
   if((S.trades||[]).some(t=>t.sizeUsd===undefined)) TR.migrate();
   Engine.recompute();
 }
@@ -1226,7 +1297,6 @@ document.addEventListener('paste',e=>{
   const files=items.filter(i=>i.kind==='file'&&/^image\//.test(i.type)).map(i=>i.getAsFile());
   if(files.length){ e.preventDefault(); Board.addFiles(files); return; }
   const txt=e.clipboardData&&e.clipboardData.getData('text');
-  if(txt&&/instagram\.com\//i.test(txt.trim())){ e.preventDefault(); if(Insta.add(txt.trim())) CF.boardSrc='IG'; refresh(); return; }
   if(txt&&/pinterest\.[a-z.]+\/[^\/\s]+\/[^\/\s]+|pin\.it\//i.test(txt.trim())){ e.preventDefault(); Pins.add(txt.trim()); return; }
   if(txt&&/^https?:\/\/.+\.(png|jpe?g|gif|webp|avif)/i.test(txt.trim())){ e.preventDefault(); Board.addUrl(txt.trim()); }
 });
@@ -1260,7 +1330,10 @@ const Pal={
       {t:'BITSAT · IMPORT QUESTIONS',run:()=>{go('bitsat/mocks');setTimeout(()=>UI.importQs(),150)}},
       {t:'COLLEGE · ATTENDANCE',run:()=>go('college/attendance')},
       {t:'LOG · MONTHLY REVIEW',run:()=>go('log/review')},
-      {t:'GOALS · ADD INSTAGRAM POST',run:()=>{go('goals');CF.boardSrc='IG';setTimeout(()=>UI.instaModal(),150)}},
+      {t:'GOALS · SOUNDTRACK',run:()=>{CF.boardSrc='MUSIC';go('goals')}},
+      {t:'MUSIC · PLAY / PAUSE',run:()=>Music.toggle()},
+      {t:'MUSIC · NEXT SONG',run:()=>Music.next()},
+      {t:'MUSIC · SHUFFLE PLAY',run:()=>Music.shufflePlay()},
       {t:'BITSAT · PYQ PRACTICE',run:()=>go('bitsat/pyq')},
       {t:'LOG PYQ SESSION',run:()=>{go('bitsat/pyq');setTimeout(()=>UI.pyqModal(),150)}},
       {t:'ADD HABIT',run:()=>UI.habitModal()},
@@ -4697,13 +4770,14 @@ UI.boardModal=()=>{
 function boardSection(used){
   const tab=CF.boardTab&&(CF.boardTab==='mine'||S.boards.some(b=>b.id===CF.boardTab))?CF.boardTab:(S.boards[0]?S.boards[0].id:'mine');
   CF.boardTab=tab;
-  const srcToggle=`<div class="seg-c"><button class="${(CF.boardSrc||'PIN')==='PIN'?'on':''}" onclick="CF.boardSrc='PIN';refresh()">PINTEREST</button><button class="${CF.boardSrc==='IG'?'on':''}" onclick="CF.boardSrc='IG';refresh()">INSTAGRAM · ${(S.insta&&S.insta.posts.length)||0}</button></div>`;
-  if(CF.boardSrc==='IG') return `
+  const srcToggle=`<div class="seg-c"><button class="${CF.boardSrc!=='MUSIC'?'on':''}" onclick="CF.boardSrc='PIN';refresh()">PINTEREST</button><button class="${CF.boardSrc==='MUSIC'?'on':''}" onclick="CF.boardSrc='MUSIC';refresh()">SOUNDTRACK · ${S.music.lib.length}</button></div>`;
+  if(CF.boardSrc==='MUSIC') return `
   <div class="row" style="margin:32px 0 14px;gap:12px;flex-wrap:wrap">
     <span class="lbl">VISION BOARD</span>${srcToggle}
     <span style="flex:1;height:1px;background:var(--line)"></span>
-    <button class="btn xs solid" onclick="UI.instaModal()">+ INSTAGRAM</button>
-  </div>${instaSection()}`;
+    <span class="lbl hide-s">SONGS THAT FEEL LIKE LIVING THE LIFE</span>
+  </div>${musicSection()}`;
+  setTimeout(()=>Music.mini(),0);
   setTimeout(Pins.loadAll,0);
   const b=S.boards.find(x=>x.id===tab), c=b&&S.boardCache[b.id];
   const pinsHtml=b?(
@@ -4846,6 +4920,7 @@ VIEWS_goals=()=>{
    question bank, attendance. Lab lists can be pasted straight from a manual.
    ═════════════════════════════════════════════════════════════════ */
  const FILES_DIR=''; 
+ const MUSIC_DIR='', MUSIC_SEED=[]; 
 const COLLEGE_SEED=()=>({
   meta:{label:'YOUR COLLEGE'},
   courses:[{id:'c1',code:'',short:'MATH-I',name:'Engineering Mathematics I',ltp:'3-1-0',credits:4,books:'',units:[]}],
@@ -6282,69 +6357,223 @@ UI.importSave=()=>{ const {out,bad}=QImport.parse(val('iq_t'));
   out.forEach(x=>S.customQ.push({id:'u'+uid(),sub,chapter:ch,level:'CORE',t:80,...x,imported:today()}));
   saveNow(); closeModal(); refresh(); toast(`${out.length} IMPORTED${bad.length?' · '+bad.length+' SKIPPED':''}`,'s'); };
 
-/* ── INSTAGRAM on the vision board ─────────────────────────────────
-   Saved collections are private to your logged-in account: Instagram offers no
-   public API or embed for them, so a collection is kept as a one-click link.
-   Individual public posts and reels render through Instagram's own embed. */
-const Insta={
-  parse(u){ u=(u||'').trim();
-    let m=u.match(/instagram\.com\/(?:[A-Za-z0-9_.]+\/)?(p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i);
-    if(m) return {kind:'POST',code:m[2],url:`https://www.instagram.com/${m[1].toLowerCase()==='reels'?'reel':m[1].toLowerCase()}/${m[2]}/`};
-    m=u.match(/instagram\.com\/([A-Za-z0-9_.]+)\/saved\/([^\/?#]+)\/?(\d+)?/i);
-    if(m) return {kind:'COLLECTION',user:m[1],name:decodeURIComponent(m[2]),url:u.split('?')[0]};
-    m=u.match(/instagram\.com\/([A-Za-z0-9_.]+)\/?$/i);
-    if(m&&!['p','reel','explore','accounts'].includes(m[1].toLowerCase())) return {kind:'PROFILE',user:m[1]};
-    return null; },
-  add(u,silent){ const p=Insta.parse(u); S.insta=S.insta||{posts:[],collections:[]};
-    if(!p){ toast('NOT AN INSTAGRAM POST, REEL OR COLLECTION LINK','r'); return false; }
-    if(p.kind==='PROFILE'){ toast('THAT’S A PROFILE — PASTE A POST, REEL OR SAVED COLLECTION','r'); return false; }
-    if(p.kind==='COLLECTION'){ if(S.insta.collections.some(c=>c.url===p.url)){ if(!silent)toast('COLLECTION ALREADY LINKED','r'); return false; }
-      S.insta.collections.push({id:uid(),url:p.url,name:p.name,user:p.user,added:today()}); }
-    else { if(S.insta.posts.some(x=>x.code===p.code)){ if(!silent)toast('POST ALREADY ON THE BOARD','r'); return false; }
-      S.insta.posts.unshift({id:uid(),code:p.code,url:p.url,added:today()}); }
-    save(); if(!silent){ closeModal(); refresh(); toast(p.kind==='COLLECTION'?'COLLECTION LINKED':'POST ADDED','s'); } return true; },
-  /* our own sandboxed iframe instead of embed.js: an unavailable or login-walled post
-     must never be able to navigate the whole app away */
-  frame:p=>`<iframe class="igframe" data-code="${esc(p.code)}" src="${esc(p.url)}embed/captioned/" loading="lazy"
-    sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" referrerpolicy="strict-origin-when-cross-origin"></iframe>`,
+/* ── MUSIC — the soundtrack ────────────────────────────────────────
+   Songs play straight from a folder when this file is opened from disk, or from
+   files you add here, which stay in this browser's IndexedDB (so they work on a
+   phone too). The player lives outside the view, so it keeps going across pages. */
+const Music={
+  a:null, cur:null, order:[], urls:{}, folder:{}, failed:{}, base:MUSIC_DIR, lastSave:0, db:null,
+  idb(){ return new Promise((res,rej)=>{ if(Music.db) return res(Music.db);
+    const r=indexedDB.open(SHOTS_DB+'-music',1); r.onupgradeneeded=()=>r.result.createObjectStore('t');
+    r.onsuccess=()=>{Music.db=r.result;res(r.result)}; r.onerror=()=>rej(r.error); }); },
+  async put(k,v){ const db=await Music.idb(); return new Promise((res,rej)=>{ const tx=db.transaction('t','readwrite'); tx.objectStore('t').put(v,k); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); },
+  async get(k){ const db=await Music.idb(); return new Promise(res=>{ const r=db.transaction('t').objectStore('t').get(k); r.onsuccess=()=>res(r.result||null); r.onerror=()=>res(null); }); },
+  async del(k){ const db=await Music.idb(); return new Promise(res=>{ const tx=db.transaction('t','readwrite'); tx.objectStore('t').delete(k); tx.oncomplete=res; tx.onerror=res; }); },
+
+  lib:()=>S.music.lib,
+  track:id=>S.music.lib.find(t=>t.id===(id||Music.cur)),
+  fmt:s=>{ s=Math.max(0,Math.round(s||0)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); },
+  runtime(){ const s=S.music.lib.reduce((a,t)=>a+(t.d||0),0), h=Math.floor(s/3600), m=Math.round((s%3600)/60); return h?`${h}H ${m}M`:`${m}M`; },
+  seed(list){ list.forEach(([f,t,a,al,cv,d])=>{ const id='mz'+f.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,28);
+    if(!S.music.lib.some(x=>x.id===id)) S.music.lib.push({id,t,a,al,cv,d,f,src:'dir',added:today()}); }); },
+
+  audio(){ if(Music.a) return Music.a;
+    const a=Music.a=new Audio(); a.preload='metadata'; a.volume=S.music.vol??.9;
+    a.addEventListener('timeupdate',Music.tick);
+    a.addEventListener('play',Music.paint); a.addEventListener('pause',Music.paint);
+    a.addEventListener('ended',()=>{ const t=Music.track(); if(t){ S.music.plays[t.id]=(S.music.plays[t.id]||0)+1; save(); }
+      if(S.music.repeat==='one'){ a.currentTime=0; a.play().catch(()=>{}); } else Music.next(true); });
+    a.addEventListener('loadedmetadata',()=>{ const t=Music.track(); if(!t) return;
+      if(isFinite(a.duration)&&Math.abs((t.d||0)-a.duration)>1.5){ t.d=Math.round(a.duration); save(); }
+      if(Music.resumeAt){ a.currentTime=Math.min(Music.resumeAt,a.duration-1); Music.resumeAt=0; } });
+    a.addEventListener('error',()=>{ const t=Music.track(); if(!t||!a.getAttribute('src')) return; Music.failed[t.id]=1; Music.paint();
+      toast(t.src==='idb'?'THIS SONG’S FILE IS MISSING — ADD IT AGAIN':(location.protocol==='file:'?'SONG NOT FOUND IN THE MUSIC FOLDER':'OPEN THE LOCAL FILE COPY, OR LINK THE MUSIC FOLDER'),'r'); });
+    if('mediaSession' in navigator){ const ms=navigator.mediaSession;
+      [['play',()=>Music.toggle(true)],['pause',()=>Music.a.pause()],['previoustrack',()=>Music.prev()],['nexttrack',()=>Music.next()],
+       ['seekto',d=>{ if(d.seekTime!=null) Music.a.currentTime=d.seekTime; }]].forEach(([k,f])=>{ try{ ms.setActionHandler(k,f); }catch(e){} }); }
+    return a; },
+  async src(t){
+    if(Music.folder[t.f]) return Music.folder[t.f];
+    if(t.src==='idb'){ if(!Music.urls[t.id]){ const b=await Music.get(t.id); if(!b) return null; Music.urls[t.id]=URL.createObjectURL(b); } return Music.urls[t.id]; }
+    return Music.base?Music.base+encodeURIComponent(t.f):null; },
+  cover(t){ if(!t||!t.cv) return '';
+    if(t.cv==='idb') return Music.urls[t.id+':cv']||'';
+    return Music.folder['.covers/'+t.cv]||(Music.base?Music.base+'.covers/'+encodeURIComponent(t.cv):''); },
+  art(t,cls){ const u=Music.cover(t);
+    return `<div class="mcv ${cls||''}" data-cv="${t?t.id:''}">${Art.block('mz-'+(t?t.id:'none'),'orbit')}${u?`<img src="${esc(u)}" alt="" loading="lazy" onerror="this.remove()">`:''}</div>`; },
+  async hydrate(){ for(const t of S.music.lib) if(t.cv==='idb'&&!Music.urls[t.id+':cv']){ const b=await Music.get(t.id+':cv'); if(b) Music.urls[t.id+':cv']=URL.createObjectURL(b); }
+    $$('.mcv[data-cv]').forEach(el=>{ const t=Music.track(el.dataset.cv), u=t&&Music.cover(t); if(u&&!el.querySelector('img')) el.insertAdjacentHTML('beforeend',`<img src="${esc(u)}" alt="">`); }); },
+
+  seq(){ const ids=S.music.lib.map(t=>t.id); if(!S.music.shuffle) return ids;
+    if(Music.order.length!==ids.length||ids.some(i=>!Music.order.includes(i))){
+      const r=ids.filter(i=>i!==Music.cur); for(let i=r.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; }
+      Music.order=Music.cur?[Music.cur,...r]:r; }
+    return Music.order; },
+  async play(id,at){ const t=Music.track(id); if(!t) return; const a=Music.audio();
+    if(Music.cur!==id||Music.failed[id]){ const u=await Music.src(t);
+      if(!u){ toast(Music.base||t.src==='idb'?'THIS SONG’S FILE IS MISSING':'LINK YOUR MUSIC FOLDER TO PLAY THIS','r'); return; }
+      delete Music.failed[id]; Music.cur=id; Music.resumeAt=at||0; a.src=u; S.music.last={id,pos:at||0}; save(); Music.meta(t); }
+    try{ await a.play(); }catch(e){ if(e.name==='NotAllowedError') toast('TAP PLAY TO START','r'); }
+    Music.paint(); },
+  toggle(forcePlay){ const a=Music.audio();
+    if(!Music.cur){ const l=S.music.last&&Music.track(S.music.last.id), t=l||Music.track(Music.seq()[0]); if(t) Music.play(t.id,l?S.music.last.pos:0); return; }
+    if(a.paused||forcePlay===true) a.play().catch(()=>{}); else a.pause(); },
+  shufflePlay(){ S.music.shuffle=true; Music.cur=null; Music.order=[]; const s=Music.seq(); if(s.length) Music.play(s[0]); save(); },
+  next(auto){ const s=Music.seq(); if(!s.length) return; const i=s.indexOf(Music.cur);
+    if(i+1>=s.length&&auto&&S.music.repeat==='off'){ Music.a.pause(); Music.a.currentTime=0; return; }
+    Music.play(s[(i+1)%s.length]); },
+  prev(){ const a=Music.audio(); if(a.currentTime>3||!Music.cur){ a.currentTime=0; return; }
+    const s=Music.seq(), i=s.indexOf(Music.cur); Music.play(s[(i-1+s.length)%s.length]); },
+  setShuffle(){ S.music.shuffle=!S.music.shuffle; Music.order=[]; save(); Music.paint(); },
+  setRepeat(){ S.music.repeat={all:'one',one:'off',off:'all'}[S.music.repeat||'all']; save(); Music.paint(); },
+  setVol(v){ S.music.vol=+v; if(Music.a) Music.a.volume=+v; save(); },
+  scrub(e,el){ const a=Music.audio(); if(!Music.cur||!isFinite(a.duration)) return;
+    const go=ev=>{ const r=el.getBoundingClientRect(); a.currentTime=clamp((ev.clientX-r.left)/r.width,0,1)*a.duration; Music.tick(); };
+    go(e); el.setPointerCapture&&el.setPointerCapture(e.pointerId);
+    const up=()=>{ el.removeEventListener('pointermove',go); el.removeEventListener('pointerup',up); el.removeEventListener('pointercancel',up); };
+    el.addEventListener('pointermove',go); el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); },
+  tick(){ const a=Music.a; if(!a) return; const d=isFinite(a.duration)?a.duration:((Music.track()||{}).d||0);
+    const pct=d?a.currentTime/d*100:0;
+    $$('[data-mp=fill]').forEach(el=>el.style.width=pct+'%');
+    $$('[data-mp=cur]').forEach(el=>el.textContent=Music.fmt(a.currentTime));
+    $$('[data-mp=dur]').forEach(el=>el.textContent=Music.fmt(d));
+    if(Music.cur&&Date.now()-Music.lastSave>5000){ Music.lastSave=Date.now(); S.music.last={id:Music.cur,pos:Math.floor(a.currentTime)}; save(); } },
+  meta(t){ if(!('mediaSession' in navigator)||!window.MediaMetadata) return; const u=Music.cover(t);
+    navigator.mediaSession.metadata=new MediaMetadata({title:t.t,artist:t.a||'',album:t.al||'LOCKIN OS',artwork:u?[{src:new URL(u,location.href).href,sizes:'360x360',type:'image/jpeg'}]:[]}); },
+
+  playing:()=>!!(Music.a&&Music.cur&&!Music.a.paused),
+  onPage:()=>ROUTE.view==='goals'&&CF.boardSrc==='MUSIC',
+  paint(){ Music.mini();
+    const h=$('#mhero'); if(h) h.innerHTML=Music.heroInner();
+    $$('.mrow').forEach(r=>{ r.classList.toggle('on',r.dataset.id===Music.cur); r.classList.toggle('run',r.dataset.id===Music.cur&&Music.playing()); r.classList.toggle('bad',!!Music.failed[r.dataset.id]); });
+    Music.tick(); },
+  I:{
+    play:'<svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></svg>',
+    pause:'<svg viewBox="0 0 24 24"><path d="M6.5 4h4v16h-4zM13.5 4h4v16h-4z" fill="currentColor"/></svg>',
+    next:'<svg viewBox="0 0 24 24"><path d="M5 5v14l10-7zM16.5 5h2.5v14h-2.5z" fill="currentColor"/></svg>',
+    prev:'<svg viewBox="0 0 24 24"><path d="M19 5v14L9 12zM5 5h2.5v14H5z" fill="currentColor"/></svg>',
+    shuf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7h3.5c4.5 0 6.5 10 11 10H21M3 17h3.5c1.8 0 3.1-1.6 4.2-3.6M13.3 9.6C14.4 8 15.7 7 17.5 7H21M18.5 4.5 21 7l-2.5 2.5M18.5 14.5 21 17l-2.5 2.5"/></svg>',
+    rep:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 11V9a3 3 0 013-3h13M17 3l3 3-3 3M20 13v2a3 3 0 01-3 3H4M7 21l-3-3 3-3"/></svg>',
+  },
+  mini(){ const el=$('#mplayer'); if(!el) return; const t=Music.track();
+    if(!t||Music.onPage()){ el.classList.remove('on'); return; }
+    el.innerHTML=`<div class="mp">
+      <button class="mp-art" onclick="CF.boardSrc='MUSIC';go('goals')" title="Open soundtrack">${Music.art(t,'sm')}</button>
+      <div class="mp-t" onclick="CF.boardSrc='MUSIC';go('goals')"><b>${esc(t.t)}</b><span>${esc(t.a||'—')}</span></div>
+      <button class="mp-b hide-s" onclick="Music.prev()" title="Previous">${Music.I.prev}</button>
+      <button class="mp-b pp" onclick="Music.toggle()" title="Play / pause">${Music.playing()?Music.I.pause:Music.I.play}</button>
+      <button class="mp-b" onclick="Music.next()" title="Next">${Music.I.next}</button>
+      <div class="mp-bar" onpointerdown="Music.scrub(event,this)"><i data-mp="fill"></i></div></div>`;
+    el.classList.add('on'); Music.tick(); },
+  heroInner(){ const lib=S.music.lib, t=Music.track()||(S.music.last&&Music.track(S.music.last.id))||lib[0];
+    if(!t) return '';
+    const s=Music.seq(), n=s.indexOf(t.id)+1, pl=S.music.plays[t.id]||0, live=Music.cur===t.id, rep=S.music.repeat||'all';
+    return `<div class="mh">
+      ${Music.art(t,'lg'+(Music.playing()?' live':''))}
+      <div class="mh-i">
+        <div class="lbl">${Music.playing()?'<span class="dot" style="display:inline-block;margin-right:8px;vertical-align:1px"></span>NOW PLAYING':live?'PAUSED':'UP NEXT'} · ${n} / ${lib.length}${pl?` · PLAYED ${pl}×`:''}</div>
+        <div class="mh-t">${esc(t.t)}</div>
+        <div class="mh-a">${esc(t.a||'Unknown artist')}${t.al&&t.al!==t.t?` <span>· ${esc(t.al)}</span>`:''}</div>
+        <div class="mh-bar" onpointerdown="Music.scrub(event,this)"><i data-mp="fill" style="width:${live&&Music.a&&Music.a.duration?Music.a.currentTime/Music.a.duration*100:0}%"></i></div>
+        <div class="row" style="justify-content:space-between"><span class="lbl" data-mp="cur">${live&&Music.a?Music.fmt(Music.a.currentTime):'0:00'}</span><span class="lbl" data-mp="dur">${Music.fmt(t.d)}</span></div>
+        <div class="mh-c">
+          <button class="mc ${S.music.shuffle?'lit':''}" onclick="Music.setShuffle()" title="Shuffle">${Music.I.shuf}</button>
+          <button class="mc" onclick="Music.prev()" title="Previous">${Music.I.prev}</button>
+          <button class="mc big" onclick="${live?'Music.toggle()':`Music.play('${t.id}',${S.music.last&&S.music.last.id===t.id?S.music.last.pos:0})`}" title="Play / pause">${Music.playing()?Music.I.pause:Music.I.play}</button>
+          <button class="mc" onclick="Music.next()" title="Next">${Music.I.next}</button>
+          <button class="mc ${rep!=='off'?'lit':''}" onclick="Music.setRepeat()" title="Repeat: ${rep}">${Music.I.rep}${rep==='one'?'<em>1</em>':''}</button>
+          <input type="range" class="mvol hide-s" min="0" max="1" step="0.01" value="${S.music.vol??.9}" oninput="Music.setVol(this.value)" title="Volume">
+        </div>
+      </div></div>`; },
+
+  /* read ID3v2.3/2.4 title, artist, album and cover from an added file */
+  async tags(file){
+    const out={t:file.name.replace(/\.[^.]+$/,'').replace(/_spotdown\.org$/i,''),a:'',al:''};
+    try{ const h=new Uint8Array(await file.slice(0,10).arrayBuffer());
+      if(h[0]!==73||h[1]!==68||h[2]!==51||h[3]<3) return out;
+      const ver=h[3], size=(h[6]<<21)|(h[7]<<14)|(h[8]<<7)|h[9];
+      const d=new Uint8Array(await file.slice(10,10+size).arrayBuffer());
+      const dec=(e,b)=>new TextDecoder(e===1?'utf-16':e===2?'utf-16be':e===3?'utf-8':'windows-1252').decode(b);
+      const txt=b=>dec(b[0],b.subarray(1)).replace(/ +/g,' / ').replace(/^[\s\/]+|[\s\/]+$/g,'').trim();
+      let i=0;
+      while(i+10<=d.length){ const id=String.fromCharCode(d[i],d[i+1],d[i+2],d[i+3]); if(!/^[A-Z0-9]{4}$/.test(id)) break;
+        const fs=ver===4?((d[i+4]<<21)|(d[i+5]<<14)|(d[i+6]<<7)|d[i+7]):(((d[i+4]<<24)|(d[i+5]<<16)|(d[i+6]<<8)|d[i+7])>>>0);
+        const b=d.subarray(i+10,i+10+fs); i+=10+fs;
+        if(id==='TIT2') out.t=txt(b)||out.t; else if(id==='TPE1') out.a=txt(b); else if(id==='TALB') out.al=txt(b);
+        else if(id==='APIC'&&!out.pic&&b.length>20){ const e=b[0]; let j=b.indexOf(0,1); const mime=dec(0,b.subarray(1,j))||'image/jpeg'; j+=2;
+          if(e===1||e===2){ while(j+1<b.length&&!(b[j]===0&&b[j+1]===0)) j+=2; j+=2; } else { while(j<b.length&&b[j]!==0) j++; j+=1; }
+          out.pic=new Blob([b.subarray(j)],{type:/image\//.test(mime)?mime:'image/jpeg'}); } }
+    }catch(e){}
+    return out; },
+  async shrink(blob){ try{ const bm=await createImageBitmap(blob), k=Math.min(1,320/Math.max(bm.width,bm.height));
+      const c=document.createElement('canvas'); c.width=Math.round(bm.width*k); c.height=Math.round(bm.height*k); c.getContext('2d').drawImage(bm,0,0,c.width,c.height);
+      return await new Promise(r=>c.toBlob(r,'image/jpeg',.84)); }catch(e){ return null; } },
+  duration(file){ return new Promise(res=>{ const u=URL.createObjectURL(file), x=new Audio(); let done=false;
+    const fin=v=>{ if(done) return; done=true; URL.revokeObjectURL(u); res(v); };
+    x.preload='metadata'; x.onloadedmetadata=()=>fin(isFinite(x.duration)?Math.round(x.duration):0); x.onerror=()=>fin(0); setTimeout(()=>fin(0),5000); x.src=u; }); },
+  async addFiles(files){
+    files=[...files].filter(f=>/^audio\//.test(f.type)||/\.(mp3|m4a|aac|wav|ogg|flac|opus)$/i.test(f.name));
+    if(!files.length){ toast('NO AUDIO FILES','r'); return; }
+    toast(`ADDING ${files.length} SONG${files.length===1?'':'S'}…`); let added=0, dup=0;
+    for(const f of files){ const tg=await Music.tags(f);
+      if(S.music.lib.some(x=>x.t.toLowerCase()===tg.t.toLowerCase()&&(x.a||'').toLowerCase()===tg.a.toLowerCase())){ dup++; continue; }
+      const id='mu'+uid(), tr={id,t:tg.t,a:tg.a,al:tg.al,cv:'',d:await Music.duration(f),f:f.name,src:'idb',added:today()};
+      try{ await Music.put(id,f);
+        if(tg.pic){ const c=await Music.shrink(tg.pic); if(c){ await Music.put(id+':cv',c); Music.urls[id+':cv']=URL.createObjectURL(c); tr.cv='idb'; } }
+      }catch(e){ toast('BROWSER STORAGE IS FULL — REMOVE SOME SONGS','r'); break; }
+      S.music.lib.push(tr); added++; }
+    saveNow(); Music.order=[]; refresh();
+    toast(`${added} ADDED${dup?` · ${dup} ALREADY IN`:''}`,added?'s':'r'); },
+  linkFolder(files){ let n=0;
+    [...files].forEach(f=>{ const rel=(f.webkitRelativePath||f.name).split('/').slice(1).join('/')||f.name; Music.folder[rel]=URL.createObjectURL(f); if(/\.mp3$|\.m4a$/i.test(rel)) n++; });
+    const miss=S.music.lib.filter(t=>t.src==='dir'&&!Music.folder[t.f]).length;
+    Music.failed={}; refresh(); toast(`FOLDER LINKED · ${n} FILES${miss?` · ${miss} NOT FOUND`:''}`,'s'); },
+  async remove(id){ const t=Music.track(id); if(!t) return;
+    if(Music.cur===id){ Music.a.pause(); Music.a.removeAttribute('src'); Music.a.load(); Music.cur=null; }
+    if(t.src==='idb'){ await Music.del(id); await Music.del(id+':cv'); }
+    S.music.lib=S.music.lib.filter(x=>x.id!==id); delete S.music.plays[id]; if(S.music.last&&S.music.last.id===id) S.music.last=null;
+    save(); refresh(); toast('REMOVED FROM SOUNDTRACK'); },
+  filter(q){ q=q.trim().toLowerCase(); CF.musicQ=q;
+    $$('.mrow').forEach(r=>r.style.display=!q||r.dataset.q.includes(q)?'':'none'); },
 };
-UI.instaModal=()=>openModal(modalShell('ADD FROM INSTAGRAM',`
-  <div class="dim" style="font-size:12.5px;margin-bottom:14px">Paste a <b>post or reel</b> to show it on the board, or a <b>saved collection</b> link to keep it one click away.</div>
-  ${F.text('ig_u','INSTAGRAM LINK','','https://www.instagram.com/reel/…')}
-  <div class="lbl" style="margin-top:14px;line-height:1.8">SAVED COLLECTIONS ARE PRIVATE TO YOUR ACCOUNT — INSTAGRAM HAS NO PUBLIC WAY TO SHOW THEIR CONTENTS OUTSIDE THE APP.<br>OPEN THE COLLECTION, TAP A POST → SHARE → COPY LINK, THEN PASTE IT HERE. PRIVATE ACCOUNTS’ POSTS WON’T RENDER.</div>`,
-  `<button class="btn sm ghost" onclick="closeModal()">CANCEL</button><button class="btn sm solid" onclick="Insta.add(val('ig_u'))">ADD</button>`));
-/* Instagram's embed page reports its height; size each frame to fit */
-window.addEventListener('message',e=>{ try{ if(!/(^|\.)instagram\.com$/.test(new URL(e.origin).hostname)) return;
-  const d=typeof e.data==='string'?JSON.parse(e.data):e.data; if(!d||d.type!=='MEASURE'||!d.details||!d.details.height) return;
-  $$('.igframe').forEach(f=>{ if(f.contentWindow===e.source) f.style.height=Math.min(1400,Math.max(200,d.details.height))+'px'; }); }catch(err){} });
-function instaSection(){
-  S.insta=S.insta||{posts:[],collections:[]};
-  const I=S.insta;
-  return `
-  <div class="row wf" style="gap:8px;margin-bottom:14px">
-    ${I.collections.map(c=>`<span class="igcol"><a href="${esc(c.url)}" target="_blank" rel="noopener">▣ ${esc(c.name.toUpperCase())} · @${esc(c.user)} ${icon('arr')}</a>
-      <button class="iconbtn" style="width:22px;height:22px;min-width:22px;padding:0" onclick="S.insta.collections=S.insta.collections.filter(x=>x.id!=='${c.id}');save();refresh()">${icon('x')}</button></span>`).join('')}
-    <span class="sp"></span><span class="lbl">${I.posts.length} POST${I.posts.length===1?'':'S'}</span>
+window.addEventListener('hashchange',()=>setTimeout(()=>Music.mini(),0));
+document.addEventListener('keydown',e=>{
+  if(e.target&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||e.target.isContentEditable) return;
+  if(!Music.onPage()||e.metaKey||e.ctrlKey||e.altKey) return;
+  if(e.key===' '){ e.preventDefault(); Music.toggle(); }
+  else if(e.key==='ArrowRight'&&e.shiftKey){ Music.next(); } else if(e.key==='ArrowLeft'&&e.shiftKey){ Music.prev(); }
+});
+function musicSection(){
+  const M=S.music, lib=M.lib, q=CF.musicQ||'', canLink=Music.base&&location.protocol!=='file:';
+  setTimeout(()=>{ Music.hydrate(); Music.mini(); Music.tick(); },0);
+  const plays=Object.values(M.plays).reduce((a,b)=>a+b,0);
+  const add=`<input type="file" id="mu_add" accept="audio/*,.mp3,.m4a" multiple style="display:none" onchange="Music.addFiles(this.files);this.value=''">
+    <input type="file" id="mu_dir" webkitdirectory style="display:none" onchange="Music.linkFolder(this.files);this.value=''">`;
+  if(!lib.length) return `${add}<div class="pnl tk hero" style="position:relative;overflow:hidden">${Art.block('music-empty','wave','art-hero')}
+    <div class="empty" style="position:relative;padding:70px 20px">NO SONGS YET<br><span>ADD THE SONGS THAT MAKE YOU FEEL LIKE YOU’RE LIVING THE LIFE</span>
+    <div style="margin-top:22px"><button class="btn sm solid" onclick="$('#mu_add').click()">+ ADD SONGS</button></div></div></div>`;
+  return `${add}
+  <section class="pnl tk hero" id="mhero" style="position:relative;overflow:hidden">${Music.heroInner()}</section>
+  <div class="row wf" style="gap:10px;margin:18px 0 12px">
+    <input class="inp" placeholder="Search the soundtrack" value="${esc(q)}" oninput="Music.filter(this.value)" style="max-width:260px;flex:1 1 180px">
+    <span class="lbl">${lib.length} SONGS · ${Music.runtime()}${plays?` · ${plays} PLAYS`:''}</span><span class="sp"></span>
+    <button class="btn xs ghost" onclick="Music.shufflePlay()">SHUFFLE PLAY</button>
+    ${canLink?`<button class="btn xs ghost" onclick="$('#mu_dir').click()" title="Choose your music folder so songs play here">LINK FOLDER</button>`:''}
+    <button class="btn xs solid" onclick="$('#mu_add').click()">+ ADD SONGS</button>
   </div>
-  <div class="igwall">${I.posts.length?I.posts.map(p=>`<div class="igcard">
-      <button class="pinx" style="opacity:1;z-index:3" title="Remove" onclick="S.insta.posts=S.insta.posts.filter(x=>x.id!=='${p.id}');save();refresh()">${icon('x')}</button>
-      ${Insta.frame(p)}
-      <a href="${esc(p.url)}" target="_blank" rel="noopener" class="igopen">OPEN ON INSTAGRAM ${icon('arr')}</a></div>`).join('')
-    :`<div class="pnl" style="grid-column:1/-1;position:relative;overflow:hidden">${Art.block('insta-empty','orbit','art-card')}
-      <div class="empty" style="position:relative;padding:54px 20px">NO INSTAGRAM POSTS YET<br><span>${I.collections.length?'OPEN YOUR COLLECTION ABOVE · COPY A POST LINK · PASTE IT HERE':'PASTE A POST, REEL OR SAVED-COLLECTION LINK'}</span></div></div>`}
-  </div>
-  <style>
-  .igwall{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
-  .igcard{position:relative;border:1px solid var(--line);background:var(--panel);min-height:120px;overflow:hidden;border-radius:var(--wrad-s)}
-  .igframe{display:block;width:100%;height:560px;border:0;background:#fff;transition:height .3s var(--e-out)}
-  .igopen{display:block;padding:10px 12px;font:500 9px/1 var(--mono);letter-spacing:.16em;color:var(--fg3);border-top:1px solid var(--line)}
-  .igopen:hover{color:var(--sig)}
-  .igfallback{display:block;padding:40px 14px;text-align:center;font:500 9.5px/1.6 var(--mono);letter-spacing:.16em;color:var(--fg3)}
-  .igcol{display:inline-flex;align-items:center;gap:8px;padding:6px 8px 6px 12px;border:1px solid var(--line2);border-radius:999px;font:500 9.5px/1 var(--mono);letter-spacing:.14em}
-  .igcol a:hover{color:var(--sig)}
-  @media(max-width:620px){.igwall{grid-template-columns:1fr}}
-  </style>`;
+  <div class="mlist pnl">${lib.map((t,i)=>`
+    <div class="mrow${Music.cur===t.id?' on':''}${Music.cur===t.id&&Music.playing()?' run':''}${Music.failed[t.id]?' bad':''}" data-id="${t.id}"
+      data-q="${esc((t.t+' '+(t.a||'')+' '+(t.al||'')).toLowerCase())}" ${q&&!(t.t+' '+(t.a||'')+' '+(t.al||'')).toLowerCase().includes(q)?'style="display:none"':''}
+      onclick="Music.cur==='${t.id}'?Music.toggle():Music.play('${t.id}')">
+      <span class="mrow-n"><b>${String(i+1).padStart(2,'0')}</b><i class="eq"><s></s><s></s><s></s></i></span>
+      ${Music.art(t,'xs')}
+      <span class="mrow-t"><b>${esc(t.t)}</b><span>${esc(t.a||'—')}</span></span>
+      <span class="mrow-p hide-s">${M.plays[t.id]?M.plays[t.id]+'×':''}</span>
+      <span class="mrow-d">${t.d?Music.fmt(t.d):''}</span>
+      <button class="mrow-x" title="Remove" onclick="event.stopPropagation();Music.remove('${t.id}')">${icon('x')}</button>
+    </div>`).join('')}</div>`;
 }
+
 
 /* MOCKS tab = simulator + manual log; a finished run opens its analysis */
 function simPanel(){

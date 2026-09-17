@@ -9,7 +9,7 @@ A personal operating system for exam prep, training, money and building. It's on
 | | |
 |---|---|
 | **COMMAND** | What's next, how much is left, required pace, checkpoint, streak |
-| **GOALS** | Vision board with Pinterest boards and Instagram posts |
+| **GOALS** | Vision board with Pinterest boards and a soundtrack music player (songs saved in your browser, lock-screen controls) |
 | **BITSAT** | Queue engine (prerequisites, checkpoints), velocity engine, official syllabus, drill bank, PYQ links, full-length mock simulator with analysis, error log |
 | **COLLEGE** | Attendance: how many classes you can still miss. Also labs (record + observation), courses, assignments, question bank |
 | **TASKS / HABITS** | Todo list; Loop-style habit strength scores |
