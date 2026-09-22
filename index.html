@@ -208,7 +208,9 @@ input,select,textarea,button{font-family:inherit;color:inherit}
 #main{margin-left:var(--rail);padding-top:var(--strip);min-height:100vh}
 .wrap{max-width:1400px;padding:40px 40px 120px;margin:0 auto}
 #scrim{display:none;position:fixed;inset:0;z-index:45;background:var(--scrim);backdrop-filter:blur(10px)}
-#burger{display:none}
+#burger{display:inline-flex}
+#main{transition:margin-left .5s var(--e-soft)}
+@media(min-width:981px){.rail-off #rail{transform:translateX(-100%);box-shadow:none}.rail-off #main{margin-left:0}}
 
 .phead{display:flex;align-items:flex-end;gap:16px;margin-bottom:30px;flex-wrap:wrap}
 .phead .ttl{line-height:.9}
@@ -872,7 +874,7 @@ function defaults(){
     tasks:[], projects:[], trades:[], positions:[],
     fin:{capital:0,riskPct:1,dailyLoss:3,notes:'',usdInr:95,cashInr:0,slabPct:30,advTax:{},riskCfg:{}},
     body:{gym:{},diet:{},posture:{},targets:{protein:150,water:3.5,kcal:2600,steps:8000}},
-    prefs:{theme:'blue',lastView:'command'},
+    prefs:{theme:'blue',lastView:'tasks'},
     seen:{}
   };
 }
@@ -1169,7 +1171,10 @@ function modalShell(title,body,foot){
     <button class="iconbtn" onclick="closeModal()">${icon('x')}</button></div>
     <div class="pbd">${body}</div>${foot?`<div class="phd" style="border-top:1px solid var(--line);border-bottom:0;justify-content:flex-end;gap:8px">${foot}</div>`:''}`;
 }
-function toggleRail(){ $('#rail').classList.toggle('open'); $('#scrim').classList.toggle('on'); }
+function toggleRail(){ if(innerWidth>980){ const off=document.documentElement.classList.toggle('rail-off'); try{ localStorage.setItem('lockin.rail',off?'off':'on'); }catch(e){} return; }
+  $('#rail').classList.toggle('open'); $('#scrim').classList.toggle('on'); }
+try{ if(localStorage.getItem('lockin.rail')==='off') document.documentElement.classList.add('rail-off'); }catch(e){}
+document.addEventListener('keydown',e=>{ if(e.key==='['&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!/^(INPUT|TEXTAREA|SELECT)$/.test((e.target||{}).tagName)&&!(e.target||{}).isContentEditable) toggleRail(); });
 function closeRail(){ $('#rail').classList.remove('open'); $('#scrim').classList.remove('on'); }
 const THEMES=['blue','phantom','ink','light'];
 const THEMELBL={blue:'ELECTRIC',phantom:'PHANTOM',ink:'INK',light:'PAPER'};
@@ -1270,7 +1275,7 @@ function syncNavDot(){
 }
 function go(path){ location.hash='#/'+path; }
 function router(){
-  const parts=(location.hash.replace(/^#\/?/,'')||'command').split('/');
+  const parts=(location.hash.replace(/^#\/?/,'')||'tasks').split('/');
   const view=VIEWS[parts[0]]?parts[0]:'command';
   ROUTE={view,sub:parts[1]||''};
   if(!(view==='bitsat'&&ROUTE.sub==='drill')&&DR.view!=='setup'){DR.view='setup';DR.set=[];DR.ans=[];}
@@ -1325,6 +1330,7 @@ const Pal={
       {t:'COLLEGE · ADD ASSIGNMENT',run:()=>{go('college/work');setTimeout(()=>UI.workModal(),150)}},
       {t:'ADD PIN TO BOARD',run:()=>{go('goals');setTimeout(()=>UI.pinModal(),150)}},
       {t:'LINK PINTEREST BOARD',run:()=>{go('goals');setTimeout(()=>UI.boardModal(),150)}},
+      {t:'FINANCE · IMPORT TRADES (CSV)',run:()=>{go('capital/journal');setTimeout(()=>UI.csvImport(),150)}},
       {t:'FINANCE · LOG TRADE',run:()=>{go('capital/journal');setTimeout(()=>UI.tradeModal(),150)}},
       {t:'FINANCE · TERMINAL',run:()=>go('capital/terminal')},
       {t:'FINANCE · RISK ENGINE',run:()=>go('capital/risk')},
@@ -1582,6 +1588,10 @@ VIEWS_command=()=>{
       <button class="btn sm solid" onclick="UI.checkinModal()">CHECK IN</button>
     </div>
   </div>
+  ${(()=>{ const tod=S.tasks.filter(t=>!t.done&&t.due===today()); const over=S.tasks.filter(t=>!t.done&&t.due&&t.due<today());
+    return (tod.length||over.length)?Pnl('TODAY',`${over.map(taskRow).join('')}${tod.map(taskRow).join('')}`,
+      {tick:true,right:`<button class="btn xs ghost" onclick="go('tasks')">ALL TASKS ${icon('arr')}</button>`}):''; })()}
+  <div style="height:16px"></div>
   <div class="g stg" style="gap:16px">
     ${heroNext()}
     <div class="g g4">
@@ -2265,15 +2275,16 @@ VIEWS_tasks=()=>{
              ['CLEARED',show.filter(t=>t.done)]];
   const f=(k,v,l)=>`<button class="${TF[k]===v?'on':''}" onclick="setTF('${k}','${v}')">${l}</button>`;
   return pageHead('04','TASKS',`<button class="btn sm solid" onclick="UI.taskModal()">+ TASK</button>`)+`
+  <section class="pnl" style="margin-bottom:16px"><div class="pbd tight">
+    <input class="inp" placeholder="Add a task —  !high  #bitsat  @today   ↵" onkeydown="quickAdd(event)" style="border:0;background:transparent;font-size:14px;padding:8px 4px">
+  </div></section>
+  ${(over.length||tod.length)?Pnl('TODAY',`${over.map(taskRow).join('')}${tod.map(taskRow).join('')}`,{tick:true})+'<div style=\"height:16px\"></div>':''}
   <div class="g g4" style="margin-bottom:16px">
     ${Tile('OPEN',open.length,'ACTIVE TASKS')}
     ${Tile('DUE TODAY',tod.length,'SCHEDULED')}
     ${Tile('OVERDUE',over.length,over.length?'ATTENTION':'CLEAR')}
     ${Tile('CLEARED',S.tasks.filter(t=>t.done).length,'ALL TIME')}
   </div>
-  <section class="pnl" style="margin-bottom:16px"><div class="pbd tight">
-    <input class="inp" placeholder="Add a task —  !high  #bitsat  @today   ↵" onkeydown="quickAdd(event)" style="border:0;background:transparent;font-size:14px;padding:8px 4px">
-  </div></section>
   <div class="row wf g8" style="margin-bottom:16px">
     <div class="seg-c">${f('lane','ALL','ALL')}${['BITSAT','BUILD','CAPITAL','BODY','ADMIN','GENERAL'].map(l=>f('lane',l,l)).join('')}</div>
     <div class="seg-c">${f('show','OPEN','OPEN')}${f('show','DONE','DONE')}${f('show','ANY','ANY')}</div>
@@ -3251,6 +3262,95 @@ UI.delTrade=id=>{ const t=S.trades.find(x=>x.id===id);
   openModal(modalShell('DELETE TRADE #'+(t?t.n:''),`<div class="dim" style="font-size:12.5px">This removes the trade, its journal and its screenshot. Analytics and tax estimates recalculate without it.</div>`,
     `<button class="btn sm ghost" onclick="closeModal()">CANCEL</button><button class="btn sm ghost dngr" onclick="S.trades=S.trades.filter(x=>x.id!=='${id}');Shots.del('${id}');saveNow();closeModal();refresh();toast('DELETED','r')">DELETE</button>`)); };
 
+/* ── CSV IMPORT — any exchange / bot / sheet export → journal rows ───
+   Headers are matched by name (see CSV.H), so most exports work as-is.
+   Only asset + something to size it by + an entry, an exit or a P&L are needed. */
+const CSV={
+  parse(txt){ const rows=[]; let r=[], f='', q=false; txt=txt.replace(/^﻿/,'');
+    const first=txt.split('\n')[0], comma=(first.match(/;/g)||[]).length>(first.match(/,/g)||[]).length?';':(first.includes('\t')?'\t':',');
+    for(let i=0;i<txt.length;i++){ const c=txt[i];
+      if(q){ if(c==='"'){ if(txt[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+      else if(c==='"') q=true; else if(c===comma){ r.push(f); f=''; }
+      else if(c==='\n'||c==='\r'){ if(c==='\r'&&txt[i+1]==='\n') i++; r.push(f); f=''; if(r.some(x=>x.trim()!=='')) rows.push(r); r=[]; }
+      else f+=c; }
+    r.push(f); if(r.some(x=>x.trim()!=='')) rows.push(r); return rows; },
+  norm:h=>String(h).toLowerCase().replace(/[^a-z0-9]/g,''),
+  H:{ asset:['asset','coin','token','symbol','ticker','name','pair','market'],
+      sizeUsd:['sizeusd','usdin','invested','cost','costusd','capital','capitalusd','amountusd','size','positionsize','buyusd'],
+      sol:['sizesol','solin','sol','amountsol','buysol'],
+      entry:['entry','entryprice','buyprice','avgentry','openprice','price'],
+      exit:['exit','exitprice','sellprice','avgexit','closeprice'],
+      entryMc:['entrymc','entrymcap','entrymarketcap','buymc','buymcap','mcapin'],
+      exitMc:['exitmc','exitmcap','exitmarketcap','sellmc','sellmcap','mcapout'],
+      opened:['opened','open','opendate','entrydate','entrytime','buytime','date','time','datetime'],
+      closed:['closed','close','closedate','exitdate','exittime','selltime'],
+      side:['side','direction','type'],
+      pnl:['pnl','pnlusd','profit','profitusd','realizedpnl','realized','result','resultusd','netpnl','gainloss'],
+      pnlSol:['pnlsol','resultsol','profitsol'],
+      fees:['fees','fee','feesusd','commission'],
+      contract:['contract','address','mint','ca','tokenaddress'],
+      sold:['sold','soldpct','closedpct'],
+      notes:['notes','note','comment','remarks','why','thesis'] },
+  map(head){ const idx={}, n=head.map(CSV.norm);
+    Object.entries(CSV.H).forEach(([k,al])=>{ const a=al.find(x=>n.includes(x)); if(a) idx[k]=n.indexOf(a); }); return idx; },
+  num(v){ if(v==null) return null; let s=String(v).trim().replace(/[$₹,\s]/g,''); if(!s||s==='-') return null; let m=1;
+    if(/[kK]$/.test(s)){m=1e3;s=s.slice(0,-1);} else if(/[mM]$/.test(s)){m=1e6;s=s.slice(0,-1);} else if(/[bB]$/.test(s)){m=1e9;s=s.slice(0,-1);}
+    if(/^\(.*\)$/.test(s)) s='-'+s.slice(1,-1); const x=parseFloat(s); return isNaN(x)?null:x*m; },
+  date(v){ if(!v) return ''; const d=new Date(String(v).trim()); if(isNaN(d)) return ''; return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,16); },
+  /* returns {rows:[trade fields], skipped:[[line,why]], idx} */
+  build(text,opt){
+    const all=CSV.parse(text); if(all.length<2) return {rows:[],skipped:[[0,'NO DATA ROWS']],idx:{}};
+    const idx=CSV.map(all[0]), rows=[], skipped=[];
+    if(idx.asset==null) return {rows:[],skipped:[[1,'NO ASSET / COIN / TOKEN COLUMN']],idx};
+    all.slice(1).forEach((r,i)=>{ const g=k=>idx[k]==null?'':(r[idx[k]]??'');
+      const asset=String(g('asset')).trim().replace(/^\$/,'').toUpperCase(); if(!asset){ skipped.push([i+2,'NO ASSET']); return; }
+      const rate=opt.solUsd||0, sol=CSV.num(g('sol')); let size=CSV.num(g('sizeUsd'));
+      if(!size&&sol&&rate) size=sol*rate; if(!size||size<=0){ skipped.push([i+2,asset+': NO SIZE (USD COLUMN, OR SOL COLUMN + SOL PRICE)']); return; }
+      let entry=CSV.num(g('entry')), exit=CSV.num(g('exit')), em=CSV.num(g('entryMc')), xm=CSV.num(g('exitMc'));
+      let pnl=CSV.num(g('pnl')); const ps=CSV.num(g('pnlSol')); if(pnl==null&&ps!=null&&rate) pnl=ps*rate;
+      let sold=CSV.num(g('sold')); const side=/short/i.test(g('side'))?'SHORT':'LONG'; let note='';
+      const haveExit=!!(exit||xm);
+      if(!haveExit&&pnl!=null){ // only a result in the file → keep the return exact, mark the levels as derived
+        const ret=1+pnl/size*(side==='SHORT'?-1:1); if(ret<=0){ skipped.push([i+2,asset+': LOSS BIGGER THAN SIZE']); return; }
+        if(em) xm=em*ret; else { entry=entry||1; exit=entry*ret; } sold=100; note='Return taken from the file’s P&L; missing levels derived. '; }
+      if(!entry&&!em){ skipped.push([i+2,asset+': NO ENTRY PRICE / MCAP AND NO P&L']); return; }
+      if(sold==null) sold=(exit||xm)?100:0; sold=clamp(sold,0,100);
+      if(sold>0&&!(exit||xm)){ skipped.push([i+2,asset+': SOLD BUT NO EXIT']); return; }
+      const opened=CSV.date(g('opened')), closed=CSV.date(g('closed'))||opened;
+      rows.push({asset,side,cls:opt.cls,chain:opt.chain,venue:opt.paper?'PAPER':'',wallet:'',route:'',contract:String(g('contract')).trim(),
+        sizeUsd:size,sizeNative:sol||null,nativeSym:'SOL',soldPct:sold,entry,exit,entryMc:em,exitMc:xm,mark:null,markMc:null,stop:null,target:null,
+        opened,closed:sold>=100?closed:'',fees:CSV.num(g('fees'))||0,slip:0,txs:1,tds:0,setups:[],mistakes:[],emotion:'',why:'',whyExit:'',
+        notes:(note+String(g('notes')||'')).trim()}); });
+    return {rows,skipped,idx}; },
+  key:t=>[t.asset,(t.opened||t.closed||'').slice(0,10),Math.round(t.sizeUsd)].join('|'),
+  commit(rows){ const have=new Set(S.trades.map(CSV.key)); let add=0,dup=0;
+    rows.forEach(t=>{ if(have.has(CSV.key(t))){ dup++; return; } have.add(CSV.key(t)); S.trades.push({id:uid(),n:TR.nextN(),shot:false,...t}); add++; });
+    return {add,dup}; },
+};
+UI.csvImport=()=>{ UI._csv=null;
+  openModal(modalShell('IMPORT TRADES · CSV',`
+    <div class="dim" style="font-size:12.5px;margin-bottom:12px">Any CSV with a header row: an exchange or bot export, a spreadsheet, another journal. Columns are matched by name — coin/token/asset, size (USD or SOL), entry/exit price or market cap, dates, P&amp;L, fees, contract, notes. Re-importing the same file skips trades already in.</div>
+    <input type="file" id="csv_f" accept=".csv,.tsv,.txt,text/csv,text/plain" class="inp" onchange="UI.csvRead(this)">
+    <div id="csv_pv" style="margin-top:14px"></div>`,
+    `<button class="btn sm ghost" onclick="closeModal()">CANCEL</button><button class="btn sm solid" id="csv_go" disabled onclick="UI.csvGo()">IMPORT</button>`)); };
+UI.csvRead=el=>{ const f=el.files[0]; if(!f) return; if(f.size>5e6){ toast('FILE TOO BIG (5 MB MAX)','r'); return; }
+  const r=new FileReader(); r.onload=()=>{ UI._csv=String(r.result); UI.csvPreview(true); }; r.readAsText(f); };
+UI.csvPreview=first=>{ if(UI._csv==null) return;
+  const o=first?{solUsd:109.9,paper:false,cls:'MEMECOIN',chain:'SOLANA'}:{solUsd:numv('csv_sol')||0,paper:$('#csv_paper').checked,cls:val('csv_cls'),chain:val('csv_chain')};
+  const b=CSV.build(UI._csv,o), tot=b.rows.reduce((a,t)=>a+TR.pnl(t),0);
+  UI._csvRows=b.rows; const keys=Object.keys(b.idx);
+  $('#csv_pv').innerHTML=`
+    <div class="g g2" style="gap:10px;margin-bottom:10px">${F.num('csv_sol','USD PER SOL (SOL-SIZED ROWS ONLY)',o.solUsd,'0.01').replace('<input','<input oninput="UI.csvPreview()"')}
+      ${F.sel('csv_cls','CLASS',TCLASS,o.cls).replace('<select','<select onchange="UI.csvPreview()"')}</div>
+    <div class="g g2" style="gap:10px;margin-bottom:10px">${F.sel('csv_chain','CHAIN / MARKET',CHAINS,o.chain).replace('<select','<select onchange="UI.csvPreview()"')}
+      <label class="row g8" style="align-items:center;cursor:pointer"><input type="checkbox" id="csv_paper" ${o.paper?'checked':''} onchange="UI.csvPreview()"><span class="lbl">PAPER TRADES — KEEP OUT OF REAL P&amp;L AND TAX</span></label></div>
+    <div class="lbl" style="line-height:1.9">COLUMNS FOUND: ${keys.length?keys.map(k=>k.toUpperCase()).join(' · '):'NONE'}<br>
+      <b class="${b.rows.length?'upc':'dnc'}">${b.rows.length} TRADES READY</b> · NET ${sgn(Fin.round(tot))} USD${b.skipped.length?` · <span class="dnc">${b.skipped.length} SKIPPED</span>`:''}</div>
+    ${b.skipped.length?`<div class="dim" style="font-size:11.5px;margin-top:8px;max-height:110px;overflow:auto">${b.skipped.slice(0,20).map(s=>`LINE ${s[0]}: ${esc(s[1])}`).join('<br>')}</div>`:''}
+    ${b.rows.length?`<div class="scrollx" style="margin-top:10px;max-height:170px;overflow:auto"><table class="tbl"><thead><tr><th>ASSET</th><th class="tr">SIZE $</th><th class="tr">RETURN</th><th class="tr">P&amp;L $</th></tr></thead><tbody>${b.rows.slice(0,12).map(t=>`<tr><td>${esc(t.asset)}</td><td class="r">${Math.round(t.sizeUsd).toLocaleString()}</td><td class="r">${n1(TR.ret(t))}%</td><td class="r ${TR.pnl(t)>=0?'upc':'dnc'}">${sgn(Fin.round(TR.pnl(t)))}</td></tr>`).join('')}</tbody></table></div>`:''}`;
+  $('#csv_go').disabled=!b.rows.length; };
+UI.csvGo=()=>{ const {add,dup}=CSV.commit(UI._csvRows||[]); saveNow(); closeModal(); refresh(); toast(`${add} IMPORTED${dup?' · '+dup+' ALREADY IN':''}`,add?'s':'r'); };
+
 /* ── rows / small components ─────────────────────────────────────── */
 const tIcon=(t,s=34)=>tokenIcon({sym:t.asset,icon:t.icon||(TR.metaCache[t.contract]||{}).icon},s);
 function posRow(t){
@@ -3385,7 +3485,7 @@ function finJournal(){
       <div class="row wf g8" style="margin-bottom:12px">
         <input class="inp" style="max-width:260px" placeholder="search token, thesis, notes…" value="${esc(FV.jq)}" onchange="FV.jq=this.value;refresh()">
         <div class="seg-c">${f('jr','ALL','ALL')}${f('jr','WIN','WIN')}${f('jr','LOSS','LOSS')}${f('jr','OPEN','OPEN')}</div>
-        <span class="sp"></span><button class="btn sm solid" onclick="UI.tradeModal()">+ TRADE</button>
+        <span class="sp"></span><button class="btn sm ghost" onclick="UI.csvImport()">IMPORT CSV</button><button class="btn sm solid" onclick="UI.tradeModal()">+ TRADE</button>
       </div>
       ${usedSetups.length?`<div class="row wf" style="gap:6px;margin-bottom:14px">${[['','ANY SETUP'],...usedSetups.map(s=>[s,s])].map(([v,l])=>
         `<button class="chip ${FV.js===v?'s':''}" style="cursor:pointer;background:transparent" onclick="FV.js='${esc(v)}';refresh()">${esc(l)}</button>`).join('')}</div>`:''}
@@ -6544,7 +6644,7 @@ UI.importSave=()=>{ const {out,bad}=QImport.parse(val('iq_t'));
   if(!out.length){ UI.importPreview(); toast('NOTHING PARSED','r'); return; }
   S.customQ=S.customQ||[];
   const sub=val('iq_s'), ch=val('iq_c');
-  out.forEach(x=>S.customQ.push({id:'u'+uid(),sub,chapter:ch,level:'CORE',t:80,...x,imported:today()}));
+  out.forEach(x=>S.customQ.push({id:'u'+uid(),sub,chapter:ch,level:'CORE',t:80,...x}));
   saveNow(); closeModal(); refresh(); toast(`${out.length} IMPORTED${bad.length?' · '+bad.length+' SKIPPED':''}`,'s'); };
 
 /* ═════════════════════════════════════════════════════════════════
@@ -6710,7 +6810,7 @@ const Sync={
       toast('SIGNED IN','s'); refresh(); Sync.start();
     }catch(e){ toast(String(e.message).toUpperCase().slice(0,90),'r'); } },
   signOut(){ Sync.setCfg({session:undefined,join:undefined,version:undefined}); localStorage.removeItem(Sync.KB); clearInterval(Sync.poll); Sync.paint('off'); refresh(); toast('SIGNED OUT · DATA STAYS ON THIS DEVICE'); },
-  link(){ const c=Sync.cfg(); return location.href.split('#')[0]+'#sync='+btoa(JSON.stringify({u:c.url,k:c.key})); },
+  link(){ const c=Sync.cfg(); const base=/^https?:\/\/(localhost|127\.|\[::1\])/i.test(location.origin)||location.protocol==='file:'? 'https://parzzivalll.github.io/lockin-os/' :location.href.split('#')[0]; return base+'#sync='+btoa(JSON.stringify({u:c.url,k:c.key})); },
   fromHash(){ const m=location.hash.match(/^#sync=([A-Za-z0-9+/=_-]+)/); if(!m) return false;
     try{ const d=JSON.parse(atob(m[1])); if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(d.u)||!d.k) throw 0;
       Sync.setCfg({url:d.u,key:d.k}); history.replaceState(null,'',location.pathname+'#/settings'); router(); toast('SYNC PROJECT ADDED — SIGN IN BELOW','s'); return true;
@@ -7071,7 +7171,7 @@ window.addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(()=>{if(R
 /* boot */
 load();
 document.documentElement.setAttribute('data-theme',THEMES.includes(S.prefs.theme)?S.prefs.theme:'blue');
-if(!location.hash) location.hash='#/'+(S.prefs.lastView||'command');
+if(!location.hash) location.hash='#/'+(S.prefs.lastView||'tasks');
 router();
 requestAnimationFrame(()=>{const d=document.getElementById('navdot');if(d)d.style.transition='none';syncNavDot();
   requestAnimationFrame(()=>{if(d)d.style.transition='';});});

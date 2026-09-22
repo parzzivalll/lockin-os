@@ -30,7 +30,9 @@ def build(src_path, out_path):
     out = BLOCK.sub(lambda m: m.group(1).strip("\n"), src)
     if "@@P" in out or "@@E" in out or "@@X" in out:
         sys.exit("unbalanced personal markers")
-    leaks = [(p, m.group(0)) for p in DENY for m in re.finditer(p, out, re.I)]
+    # your own GitHub Pages URL is meant to be public, not a leak
+    scan = re.sub(r"parzzivalll\.github\.io", "", out, flags=re.I)
+    leaks = [(p, m.group(0)) for p in DENY for m in re.finditer(p, scan, re.I)]
     if leaks:
         for p, hit in leaks[:20]:
             print(f"LEAK {p!r}: {hit!r}")
